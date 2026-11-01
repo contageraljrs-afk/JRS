@@ -419,6 +419,11 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 #jrs-auth .auth-submit{border:0;border-radius:9px;background:#ffcd00;color:#11181a;font-weight:800;min-height:51px;width:100%;margin-top:25px;letter-spacing:.2px;font-size:14px}
 #jrs-auth .auth-submit:hover{background:#ffe05c}
 #jrs-auth .auth-submit:disabled{opacity:.65;cursor:wait}
+/* jrs-remember-login-v1 */
+#jrs-auth .auth-remember-label{display:flex;gap:11px;align-items:flex-start;cursor:pointer;border:1px solid #37414c;background:#171f28;padding:14px 13px;border-radius:9px;margin:21px 0 0;color:#f1f4f6}
+#jrs-auth .auth-remember-label input[type="checkbox"]{appearance:auto;accent-color:#ffcd00;width:18px;height:18px;min-height:18px;flex-shrink:0;margin:1px 0 0;padding:0;cursor:pointer}
+#jrs-auth .auth-remember-label strong{display:block;color:#ecf0f5;font-size:13px;margin-bottom:3px}
+#jrs-auth .auth-remember-label small{font-size:11px;color:#94a2b0;font-weight:400;line-height:1.5;display:block}
 #jrs-auth .auth-message{min-height:18px;color:#ff9999;font-size:12px;margin-top:12px}
 #jrs-auth .auth-hint{font-size:12px;line-height:1.65;color:#8996a5;border-top:1px solid #2d343d;margin-top:22px;padding-top:17px}
 #jrs-auth .auth-secure{margin-top:17px;padding:12px;border:1px solid #62531f;border-radius:8px;background:#2d291b;color:#dcc67f;font-size:11px;line-height:1.5}
@@ -445,6 +450,7 @@ body.jrs-unlocked #jrs-auth{display:none!important}
       <label for="jrs-auth-email">E-mail do administrador</label><input type="email" required id="jrs-auth-email" name="email" maxlength="160" autocomplete="username" placeholder="seuemail@empresa.com">
       <label for="jrs-auth-password">Senha</label><div class="password-line"><input type="password" minlength="10" required id="jrs-auth-password" name="password" autocomplete="current-password" placeholder="Digite sua senha"><button type="button" class="auth-eye" id="jrs-auth-toggle" aria-label="Mostrar senha">Mostrar</button></div>
       <div id="jrs-auth-confirm-box" style="display:none"><label for="jrs-auth-confirm">Confirme sua senha</label><input type="password" id="jrs-auth-confirm" name="confirm" autocomplete="new-password" placeholder="Repita sua senha"></div>
+      <label class="auth-remember-label" for="jrs-auth-remember"><input type="checkbox" id="jrs-auth-remember"><span><strong>Manter conectado neste dispositivo</strong><small>Acesso automático por até 30 dias neste navegador. Use apenas no seu aparelho.</small></span></label>
       <button type="submit" class="auth-submit" id="jrs-auth-submit">ENTRAR NO PAINEL →</button>
       <div class="auth-message" role="alert" id="jrs-auth-error"></div>
     </form>
@@ -457,6 +463,7 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 (function(){
 "use strict";
 const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
+const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30;
 const MODULES=["dashboard","equipment","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
 const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","Administrador"];
 const ROLE_DEFAULTS={
@@ -470,6 +477,7 @@ const gate=document.getElementById("jrs-auth"),form=document.getElementById("jrs
 const err=document.getElementById("jrs-auth-error");
 const pwdInput=document.getElementById("jrs-auth-password");
 const emailInput=document.getElementById("jrs-auth-email");
+const rememberInput=document.getElementById("jrs-auth-remember");
 const confirmInput=document.getElementById("jrs-auth-confirm");
 let logged=null,pendingChange=null,firstSetup=false,busy=false;
 const normalEmail=s=>String(s||"").trim().toLowerCase();
@@ -529,7 +537,8 @@ document.getElementById("jrs-auth-confirm-box").style.display=create?"block":"no
 document.getElementById("jrs-auth-name").required=create;
 confirmInput.required=create;
 emailInput.readOnly=false;
-emailInput.value="";
+emailInput.value=localStorage.getItem(LAST_EMAIL_KEY)||"";
+rememberInput.checked=false;
 pwdInput.value="";confirmInput.value="";pwdInput.type="password";document.getElementById("jrs-auth-toggle").textContent="Mostrar";
 pwdInput.autocomplete=create?"new-password":"current-password";
 document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Acesso local a este navegador. Funcionários de outros dispositivos precisam de autenticação com servidor.";
@@ -547,9 +556,30 @@ pwdInput.autocomplete="new-password";
 document.getElementById("jrs-auth-hint").textContent="Esta troca é obrigatória ao primeiro acesso do funcionário.";
 }
 function sessionValue(u){return u.id+"|"+u.email+"|"+u.hash}
-function unlock(u){
+function rememberedUser(){
+ try{
+  const entry=JSON.parse(localStorage.getItem(REMEMBER_KEY)||"null");
+  if(!entry||!entry.id||!entry.salt||!Number.isFinite(entry.until)||entry.until<=Date.now()){
+   localStorage.removeItem(REMEMBER_KEY);return null;
+  }
+  const user=findUser(entry.id);
+  if(!user||user.active===false||user.mustChange||user.salt!==entry.salt){
+   localStorage.removeItem(REMEMBER_KEY);return null;
+  }
+  return user;
+ }catch(e){localStorage.removeItem(REMEMBER_KEY);return null;}
+}
+function unlock(u,mode="session"){
 logged=u;
 sessionStorage.setItem(SESSION_KEY,sessionValue(u));
+if(mode==="remember"){
+  localStorage.setItem(REMEMBER_KEY,JSON.stringify({
+    id:u.id,salt:u.salt,until:Date.now()+REMEMBER_DAYS*24*60*60*1000
+  }));
+  localStorage.setItem(LAST_EMAIL_KEY,u.email);
+}else if(mode==="session"){
+  localStorage.removeItem(REMEMBER_KEY);
+}
 document.body.classList.add("jrs-unlocked");
 gate.setAttribute("aria-hidden","true");
 const right=document.querySelector(".top .right");
@@ -562,6 +592,7 @@ if(typeof go==="function")go("dashboard");
 }
 function lock(){
 logged=null;pendingChange=null;sessionStorage.removeItem(SESSION_KEY);
+localStorage.removeItem(REMEMBER_KEY);
 document.body.classList.remove("jrs-unlocked");gate.removeAttribute("aria-hidden");
 const b=document.getElementById("jrs-auth-userbar");if(b)b.remove();
 try{closeDialog()}catch(e){}
@@ -578,19 +609,19 @@ if(name.length<2)throw Error("Informe o nome do administrador.");
 if(pass!==confirm)throw Error("As senhas não coincidem.");
 const sec=await credentials(pass),u={id:"ADMIN-ROOT",name,email,role:"Administrador",active:true,...sec,createdAt:new Date().toISOString()};
 if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error("Informe e-mail válido.");
-localStorage.setItem(ADMIN_KEY,JSON.stringify(u));unlock(u);
+localStorage.setItem(ADMIN_KEY,JSON.stringify(u));unlock(u,rememberInput.checked?"remember":"session");
 }else if(pendingChange){
 if(pass!==confirmInput.value)throw Error("As senhas não coincidem.");
 const sec=await credentials(pass),all=getUsers(),i=all.findIndex(u=>u.id===pendingChange.id);
 if(i<0||!all[i].active)throw Error("Funcionário bloqueado ou não encontrado.");
-all[i]={...all[i],...sec,mustChange:false};saveUsers(all);const user=all[i];pendingChange=null;unlock(user);
+all[i]={...all[i],...sec,mustChange:false};saveUsers(all);const user=all[i];pendingChange=null;unlock(user,rememberInput.checked?"remember":"session");
 }else{
 const u=getAll().find(x=>x.email===email&&x.active!==false);
 if(!u)throw Error("E-mail ou senha incorretos.");
 const hash=await hashPassword(pass,u.salt,u.iterations||210000);
 if(hash!==u.hash)throw Error("E-mail ou senha incorretos.");
 if(u.mustChange){showChange(u);return;}
-unlock(u);
+unlock(u,rememberInput.checked?"remember":"session");
 }
 form.reset();
 }catch(ex){showError(ex.message||"Não foi possível entrar.")}
@@ -599,8 +630,16 @@ finally{btn.disabled=false;busy=false}
 form.addEventListener("submit",submit);
 document.getElementById("jrs-auth-toggle").addEventListener("click",function(){const shown=pwdInput.type==="password";pwdInput.type=shown?"text":"password";this.textContent=shown?"Ocultar":"Mostrar";this.setAttribute("aria-label",shown?"Ocultar senha":"Mostrar senha")});
 window.addEventListener("storage",e=>{if([ADMIN_KEY,USERS_KEY].includes(e.key)&&logged){const u=getLive();if(!u||u.hash!==logged.hash)lock()}});
-const session=sessionStorage.getItem(SESSION_KEY),current=getAll().find(u=>u.active!==false&&sessionValue(u)===session);
-if(session&&current){unlock(current)}else{sessionStorage.removeItem(SESSION_KEY);showLogin()}
+const session=sessionStorage.getItem(SESSION_KEY);
+const current=getAll().find(u=>u.active!==false&&!u.mustChange&&sessionValue(u)===session);
+const remembered=rememberedUser();
+if(current){
+ unlock(current,remembered&&remembered.id===current.id?"restore":"session");
+}else if(remembered){
+ unlock(remembered,"restore");
+}else{
+ sessionStorage.removeItem(SESSION_KEY);showLogin();
+}
 })();
 
 </script>
