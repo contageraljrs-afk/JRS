@@ -32,18 +32,21 @@ finance:[{id:'FN-001',description:'Locação de exemplo 01',type:'Receita',value
 let db;
 try{db=JSON.parse(localStorage.getItem(STORE))||structuredClone(seed)}catch(e){db=JSON.parse(JSON.stringify(seed))}
 let view='dashboard',filterText='',filterCategory='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const uid=p=>p+'-'+Math.floor(Date.now()%1000000).toString().padStart(6,'0');
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
 const status=(s)=>{let z=/disponível|aprov|conclu|confirmad/i.test(s)?'available':/reserva|análise|novo|agend|pendente/i.test(s)?'reserved':/opera|proposta|negocia|andamento/i.test(s)?'working':'inactive';return '<span class="status '+z+'">'+esc(s)+'</span>'};
-const header=(title,desc,button,action)=>'<div class="headline"><div><span class="eyebrow">JRS · SMART RENTAL</span><h1>'+title+'</h1><p class="subtitle">'+desc+'</p></div>'+(button?'<button class="btn primary" onclick="'+action+'">＋ '+button+'</button>':'')+'</div>';
+const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m);
+const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m);
+const requireEdit=m=>{if(canEdit(m))return true;alert('Seu perfil não permite alterar dados deste módulo.');return false};
+const header=(title,desc,button,action)=>'<div class="headline"><div><span class="eyebrow">JRS · SMART RENTAL</span><h1>'+title+'</h1><p class="subtitle">'+desc+'</p></div>'+(button&&((view==='dashboard')?canEdit('quotes'):canEdit(view))?'<button class="btn primary" onclick="'+action+'">＋ '+button+'</button>':'')+'</div>';
 const table=(cols,rows)=>'<div class="card tablewrap"><table class="table"><thead><tr>'+cols.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+ (rows.length?rows.join(''):'<tr><td colspan="'+cols.length+'" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div>';
-function renderNav(){document.getElementById('nav').innerHTML=sections.map(s=>'<div class="section-label">'+s[0]+'</div>'+s[1].map(i=>'<button class="nav-item '+(view===i[0]?'active':'')+'" onclick="go(\''+i[0]+'\')"><span class="ico">'+i[1]+'</span>'+i[2]+'</button>').join('')).join('')}
-function go(s){view=s;filterText='';filterCategory='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
+function renderNav(){document.getElementById('nav').innerHTML=sections.map(s=>{const items=s[1].filter(i=>canView(i[0]));return items.length?'<div class="section-label">'+s[0]+'</div>'+items.map(i=>'<button class="nav-item '+(view===i[0]?'active':'')+'" onclick="go(\''+i[0]+'\')"><span class="ico">'+i[1]+'</span>'+i[2]+'</button>').join(''):''}).join('')}
+function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';document.getElementById('sidebar').classList.remove('show');render()}
+function render(){if(!canView(view))view='dashboard';renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
 function dash(){let income=db.finance.filter(f=>f.type==='Receita').reduce((t,f)=>t+Number(f.value),0),op=db.equipment.filter(e=>e.status==='Em operação').length,free=db.equipment.filter(e=>e.status==='Disponível').length,open=db.quotes.filter(q=>!['Concluído','Perdido'].includes(q.status)).length;
 let stat=[['Equipamentos disponíveis',free,'⚙','Frota cadastrada'],['Equipamentos em operação',op,'↗','Uso demonstrativo'],['Locações confirmadas',db.bookings.filter(b=>b.status==='Confirmada').length,'▦','Reservas ativas'],['Orçamentos em andamento',open,'▤','Funil comercial'],['Receitas lançadas',money(income),'◈','Valores de demonstração'],['Taxa de utilização',db.equipment.length?Math.round(100*op/db.equipment.length)+'%':'0%','▥','Em operação / frota']];
 let byCat=cats.map(c=>({c,n:db.equipment.filter(e=>e.category===c).length}));
@@ -67,21 +70,116 @@ function closeDialog(){document.getElementById('dialog').classList.remove('open'
 const field=(label,name,type='text',required=true,options)=>'<div class="field"><label for="f-'+name+'">'+label+'</label>'+(options?'<select id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>':type==='textarea'?'<textarea id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'></textarea>':'<input id="f-'+name+'" name="'+name+'" type="'+type+'" '+(required?'required':'')+'></div>');
 const form=(title,fields,cb)=>openDialog(title,'<form id="entryForm" class="form-grid">'+fields+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
 function bindForm(fn){document.getElementById('entryForm').addEventListener('submit',e=>{e.preventDefault();let f=Object.fromEntries(new FormData(e.target));fn(f)})}
-function openEquipment(id){let e=db.equipment.find(x=>x.id===id);openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'+field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)+field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])+field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button></div></form>');
+function openEquipment(id){if(!requireEdit('equipment'))return;let e=db.equipment.find(x=>x.id===id);openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'+field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)+field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])+field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button></div></form>');
 if(e){for(let k of ['name','category','status','capacity','serial'])document.getElementsByName(k)[0].value=e[k]||''}
 bindForm(f=>{if(e)Object.assign(e,f);else db.equipment.push({id:uid('EQ'),...f});save();closeDialog();render()})}
-function openQuote(){openDialog('Nova solicitação de orçamento','<form id="entryForm" class="form-grid">'+field('Nome / razão social','client')+field('Equipamento desejado','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Data prevista','date','date')+field('Valor proposto (R$)','value','number',false)+field('Descrição do serviço','description','textarea')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar solicitação</button></div></form>');bindForm(f=>{db.quotes.push({...f,id:uid('ORC'),status:'Novo',value:Number(f.value)||0});save();closeDialog();render();alert('Solicitação recebida! Nossa equipe comercial entrará em contato para apresentar a melhor solução para sua operação. (Apenas demonstração local.)')})}
-function advanceQuote(id){let q=db.quotes.find(x=>x.id===id),steps=['Novo','Em análise','Proposta enviada','Em negociação','Aprovado','Em operação','Concluído'];let i=steps.indexOf(q.status);q.status=steps[Math.min(steps.length-1,i+1)];save();render()}
-function openBooking(){openDialog('Criar reserva','<form id="entryForm" class="form-grid">'+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Cliente','client')+field('Data inicial','start','date')+field('Data final','end','date')+'<div class="span2"><div class="note">O sistema bloqueia conflitos com outras reservas registradas neste navegador.</div></div><div class="span2 actions"><button class="btn primary" type="submit">Confirmar reserva</button></div></form>');bindForm(f=>{if(f.end<f.start)return alert('A data final deve ser posterior ou igual à inicial.');if(db.bookings.some(b=>b.equipment===f.equipment&&b.start<=f.end&&b.end>=f.start&&b.status==='Confirmada'))return alert('Conflito: já existe uma reserva confirmada para esse equipamento nesse período.');db.bookings.push({...f,id:uid('RS'),status:'Confirmada'});save();closeDialog();render()})}
-function openOperation(){openDialog('Nova operação','<form id="entryForm" class="form-grid">'+field('Cliente','client')+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Local da operação','location')+field('Operador responsável','operator')+field('Data da operação','date','date')+field('Observações','notes','textarea',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Criar operação</button></div></form>');bindForm(f=>{db.operations.push({...f,id:uid('OP'),status:'Agendada'});save();closeDialog();render()})}
-function advanceOperation(id){let o=db.operations.find(x=>x.id===id),s=['Agendada','Em andamento','Concluída'];o.status=s[Math.min(s.length-1,s.indexOf(o.status)+1)];save();render()}
-function openClient(){openDialog('Novo cliente','<form id="entryForm" class="form-grid">'+field('Razão social / nome','name')+field('Telefone','phone')+field('E-mail','email','email')+field('Cidade','city')+'<div class="span2 actions"><button class="btn primary" type="submit">Cadastrar cliente</button></div></form>');bindForm(f=>{db.clients.push({...f,id:uid('CL')});save();closeDialog();render()})}
-function openFinance(){openDialog('Novo lançamento financeiro','<form id="entryForm" class="form-grid">'+field('Descrição','description')+field('Tipo de lançamento','type','text',true,['Receita','Despesa'])+field('Valor (R$)','value','number')+field('Data','date','date')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar lançamento</button></div></form>');bindForm(f=>{db.finance.push({...f,id:uid('FN'),value:Number(f.value)});save();closeDialog();render()})}
+function openQuote(){if(!requireEdit('quotes'))return;openDialog('Nova solicitação de orçamento','<form id="entryForm" class="form-grid">'+field('Nome / razão social','client')+field('Equipamento desejado','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Data prevista','date','date')+field('Valor proposto (R$)','value','number',false)+field('Descrição do serviço','description','textarea')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar solicitação</button></div></form>');bindForm(f=>{db.quotes.push({...f,id:uid('ORC'),status:'Novo',value:Number(f.value)||0});save();closeDialog();render();alert('Solicitação recebida! Nossa equipe comercial entrará em contato para apresentar a melhor solução para sua operação. (Apenas demonstração local.)')})}
+function advanceQuote(id){if(!requireEdit('quotes'))return;let q=db.quotes.find(x=>x.id===id),steps=['Novo','Em análise','Proposta enviada','Em negociação','Aprovado','Em operação','Concluído'];let i=steps.indexOf(q.status);q.status=steps[Math.min(steps.length-1,i+1)];save();render()}
+function openBooking(){if(!requireEdit('bookings'))return;openDialog('Criar reserva','<form id="entryForm" class="form-grid">'+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Cliente','client')+field('Data inicial','start','date')+field('Data final','end','date')+'<div class="span2"><div class="note">O sistema bloqueia conflitos com outras reservas registradas neste navegador.</div></div><div class="span2 actions"><button class="btn primary" type="submit">Confirmar reserva</button></div></form>');bindForm(f=>{if(f.end<f.start)return alert('A data final deve ser posterior ou igual à inicial.');if(db.bookings.some(b=>b.equipment===f.equipment&&b.start<=f.end&&b.end>=f.start&&b.status==='Confirmada'))return alert('Conflito: já existe uma reserva confirmada para esse equipamento nesse período.');db.bookings.push({...f,id:uid('RS'),status:'Confirmada'});save();closeDialog();render()})}
+function openOperation(){if(!requireEdit('operations'))return;openDialog('Nova operação','<form id="entryForm" class="form-grid">'+field('Cliente','client')+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Local da operação','location')+field('Operador responsável','operator')+field('Data da operação','date','date')+field('Observações','notes','textarea',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Criar operação</button></div></form>');bindForm(f=>{db.operations.push({...f,id:uid('OP'),status:'Agendada'});save();closeDialog();render()})}
+function advanceOperation(id){if(!requireEdit('operations'))return;let o=db.operations.find(x=>x.id===id),s=['Agendada','Em andamento','Concluída'];o.status=s[Math.min(s.length-1,s.indexOf(o.status)+1)];save();render()}
+function openClient(){if(!requireEdit('clients'))return;openDialog('Novo cliente','<form id="entryForm" class="form-grid">'+field('Razão social / nome','name')+field('Telefone','phone')+field('E-mail','email','email')+field('Cidade','city')+'<div class="span2 actions"><button class="btn primary" type="submit">Cadastrar cliente</button></div></form>');bindForm(f=>{db.clients.push({...f,id:uid('CL')});save();closeDialog();render()})}
+function openFinance(){if(!requireEdit('finance'))return;openDialog('Novo lançamento financeiro','<form id="entryForm" class="form-grid">'+field('Descrição','description')+field('Tipo de lançamento','type','text',true,['Receita','Despesa'])+field('Valor (R$)','value','number')+field('Data','date','date')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar lançamento</button></div></form>');bindForm(f=>{db.finance.push({...f,id:uid('FN'),value:Number(f.value)});save();closeDialog();render()})}
+
+/* Gerenciamento de colaboradores - armazenamento local demonstrativo */
+const TEAM_MODULES=[['dashboard','Visão geral'],['equipment','Equipamentos'],['quotes','Orçamentos'],['bookings','Agenda de locações'],['operations','Operações'],['clients','Clientes'],['finance','Financeiro'],['intelligence','JRS Intelligence']];
+const TEAM_ROLES=['Básico','Operacional','Comercial','Gestor','Administrador'];
+function accesses(){
+  if(!canView('accesses'))return '<div class="card">Acesso não autorizado.</div>';
+  const access=window.JRSAccess,people=access.list(),admin=access.root();
+  const active=people.filter(p=>p.active).length;
+  const tr=(u,root)=>'<tr><td><b>'+esc(u.name)+'</b><br><span class="muted">'+esc(u.email)+'</span></td><td><span class="tag">'+esc(u.role)+'</span></td><td>'+status(u.active?'Ativo':'Bloqueado')+'</td><td>'+(root?'<small class="muted">Administrador principal</small>':'<div class="actions"><button class="btn tiny" onclick="openMemberForm(\''+esc(u.id)+'\')">Editar</button><button class="btn tiny" onclick="memberPassword(\''+esc(u.id)+'\')">Nova senha</button><button class="btn tiny" onclick="toggleMember(\''+esc(u.id)+'\')">'+(u.active?'Bloquear':'Ativar')+'</button></div>')+'</td></tr>';
+  return header('Acessos e equipe','Cadastre colaboradores e defina o que cada pessoa pode visualizar ou alterar.','Novo funcionário',"openMemberForm()")
+  +'<div class="stats"><div class="card"><small>Contas cadastradas</small><div class="bigmetric">'+(people.length+1)+'</div></div><div class="card"><small>Funcionários ativos</small><div class="bigmetric">'+active+'</div></div><div class="card"><small>Administradores</small><div class="bigmetric">'+(people.filter(p=>p.role==='Administrador'&&p.active).length+1)+'</div></div></div>'
+  +'<div class="note">Acessos demonstrativos: cadastros e senhas são armazenados neste navegador. Funcionários de outros dispositivos não conseguem entrar com essas contas. Permissões de tela não constituem proteção segura de dados. Antes do uso real, é obrigatório configurar autenticação e autorização no servidor.</div>'
+  +'<div class="card-head"><div><h3>Usuários da plataforma</h3><small>Administrador principal e funcionários cadastrados</small></div><span class="tag">Gerenciamento de acesso</span></div>'
+  +table(['Funcionário','Nível de acesso','Situação','Gerenciar'],[tr({...admin,active:true},true),...people.map(u=>tr(u,false))])
+  +'<div class="card" style="margin-top:20px"><div class="card-head"><div><h3>Níveis de acesso</h3><small>Permissões padrão, personalizáveis por funcionário.</small></div></div><div class="role-cards">'
+  +TEAM_ROLES.map(role=>{const perms=access.preset(role);const views=TEAM_MODULES.filter(m=>perms[m[0]]&&perms[m[0]].view).length;const edits=TEAM_MODULES.filter(m=>perms[m[0]]&&perms[m[0]].edit).length;return '<div class="role-card"><b>'+role+'</b><small>'+views+' módulos visíveis · '+edits+' editáveis</small></div>'}).join('')
+  +'</div></div>';
+}
+function fillMemberPermissions(role){
+  if(!window.JRSAccess)return;
+  const p=window.JRSAccess.preset(role),admin=role==='Administrador';
+  TEAM_MODULES.forEach(m=>{
+    const v=document.getElementById('perm-v-'+m[0]),e=document.getElementById('perm-e-'+m[0]);
+    if(!v||!e)return;
+    v.checked=!!p[m[0]]?.view;e.checked=!!p[m[0]]?.edit;
+    v.disabled=admin||m[0]==='dashboard';
+    e.disabled=admin;
+  });
+  const info=document.getElementById('member-role-hint');
+  if(info)info.textContent=admin?'Administradores têm acesso total. Permissões não podem ser limitadas.':'Você pode personalizar as permissões do funcionário abaixo.';
+}
+function openMemberForm(id){
+  if(!canEdit('accesses'))return;
+  const a=window.JRSAccess,u=id?a.list().find(x=>x.id===id):null;
+  if(id&&!u)return alert('Funcionário não localizado.');
+  const selected=u?.role||'Básico';
+  const perm=u?.permissions||a.preset(selected);
+  const rows=TEAM_MODULES.map(m=>{const k=m[0],p=perm[k]||{view:false,edit:false};
+    return '<tr><td>'+m[1]+'</td><td style="text-align:center"><input type="checkbox" id="perm-v-'+k+'" '+(p.view?'checked':'')+' '+(selected==='Administrador'||k==='dashboard'?'disabled':'')+' onchange="if(!this.checked)document.getElementById(\'perm-e-'+k+'\').checked=false"></td><td style="text-align:center"><input type="checkbox" id="perm-e-'+k+'" '+(p.edit?'checked':'')+' '+(selected==='Administrador'?'disabled':'')+' onchange="if(this.checked)document.getElementById(\'perm-v-'+k+'\').checked=true"></td></tr>';
+  }).join('');
+  const content='<form id="memberForm" class="form-grid">'
+  +field('Nome completo','name')+field('E-mail de acesso','email','email')
+  +'<div class="field"><label for="f-role">Nível de acesso</label><select id="f-role" name="role" onchange="fillMemberPermissions(this.value)">'+TEAM_ROLES.map(r=>'<option '+(r===selected?'selected':'')+'>'+r+'</option>').join('')+'</select></div>'
+  +'<div class="field"><label for="f-active">Status</label><select id="f-active" name="active"><option value="true">Ativo</option><option value="false">Bloqueado</option></select></div>'
+  +(u?'':'<div class="span2">'+field('Senha temporária inicial (mín. 10 caracteres, letras e números)','temporaryPassword','password')+'</div>')
+  +'<div class="span2"><h3>Permissões por módulo</h3><p class="muted" id="member-role-hint">Marque o que o funcionário pode visualizar ou editar.</p><div class="tablewrap"><table class="table"><thead><tr><th>Módulo</th><th>Visualizar</th><th>Editar</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
+  +'<div class="span2" id="memberErr" style="color:#ffaaaa;font-size:12px" role="alert"></div><div class="span2 actions"><button class="btn primary" type="submit">'+(u?'Salvar alterações':'Criar funcionário')+'</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div></form>';
+  openDialog(u?'Editar funcionário':'Cadastrar funcionário',content);
+  if(u){document.getElementsByName('name')[0].value=u.name;document.getElementsByName('email')[0].value=u.email;document.getElementsByName('active')[0].value=String(u.active);}
+  document.getElementById('member-role-hint').textContent=selected==='Administrador'?'Administradores têm acesso total.':'Você pode personalizar as permissões deste funcionário.';
+  document.getElementById('memberForm').addEventListener('submit',async ev=>{
+    ev.preventDefault();
+    const btn=ev.target.querySelector('[type="submit"]');btn.disabled=true;
+    try{
+      const data=Object.fromEntries(new FormData(ev.target));
+      const permissions={};
+      TEAM_MODULES.forEach(m=>{
+        const v=document.getElementById('perm-v-'+m[0]),e=document.getElementById('perm-e-'+m[0]);
+        permissions[m[0]]={view:!!v.checked||!!e.checked,edit:!!e.checked};
+      });
+      await(u?a.update(id,{...data,permissions,active:data.active==='true'}):a.create({...data,permissions,active:data.active==='true'}));
+      closeDialog();render();
+    }catch(err){document.getElementById('memberErr').textContent=err.message||'Não foi possível salvar.';}
+    finally{btn.disabled=false}
+  });
+}
+function toggleMember(id){
+  if(!canEdit('accesses'))return;
+  const a=window.JRSAccess,u=a.list().find(x=>x.id===id);
+  if(!u)return;
+  if(!confirm((u.active?'Bloquear':'Ativar')+' o acesso de '+u.name+'?'))return;
+  try{a.update(id,{active:!u.active});render()}catch(e){alert(e.message)}
+}
+function memberPassword(id){
+  if(!canEdit('accesses'))return;
+  const u=window.JRSAccess.list().find(x=>x.id===id);if(!u)return;
+  openDialog('Redefinir acesso de '+u.name,'<form id="resetMemberForm" class="form-grid"><div class="span2"><p class="muted">Defina uma senha temporária. No próximo login, o funcionário será solicitado a criar uma senha nova.</p></div><div class="span2">'+field('Nova senha temporária','temporaryPassword','password')+'</div><div class="span2" id="memberErr" style="color:#ffaaaa" role="alert"></div><div class="span2 actions"><button type="submit" class="btn primary">Redefinir senha</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div></form>');
+  document.getElementById('resetMemberForm').addEventListener('submit',async ev=>{
+    ev.preventDefault();const btn=ev.target.querySelector('[type="submit"]');btn.disabled=true;
+    try{await window.JRSAccess.resetPassword(id,new FormData(ev.target).get('temporaryPassword'));closeDialog();alert('Senha temporária alterada. Informe-a diretamente ao funcionário por um canal seguro.');}
+    catch(e){document.getElementById('memberErr').textContent=e.message||'Erro na redefinição.'}
+    finally{btn.disabled=false}
+  })
+}
+
 function exportData(){const a=document.createElement('a'),b=new Blob([JSON.stringify({mode:'demonstracao',savedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'});a.href=URL.createObjectURL(b);a.download='jrs-smart-rental-demo.json';a.click();URL.revokeObjectURL(a.href)}
-function resetDemo(){if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));save();render()}}
+function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));save();render()}}
 document.getElementById('date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});render();
 </script>
 
+
+<style>
+.role-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.role-card{border:1px solid #343e49;background:#202731;border-radius:9px;padding:16px;display:flex;gap:9px;flex-direction:column}
+.role-card b{color:#ffcd00;font-family:"Space Grotesk",sans-serif}
+.role-card small{color:#abb6c0;font-size:11px}
+#memberForm input[type="checkbox"]{appearance:auto;accent-color:#ffcd00;width:18px;height:18px;cursor:pointer}
+#memberForm input[type="checkbox"]:disabled{opacity:.65;cursor:not-allowed}
+#memberForm .tablewrap{max-height:380px}
+</style>
 <!-- jrs-auth-gate-v1: local demo access only, not server-side authorization -->
 <style>
 body:not(.jrs-unlocked)>.app{display:none!important}
@@ -152,120 +250,155 @@ body.jrs-unlocked #jrs-auth{display:none!important}
   </div></div>
 </div>
 <script>
-(function () {
+
+(function(){
 "use strict";
-const ADMIN_KEY = "jrs_demo_admin_v1";
-const SESSION_KEY = "jrs_demo_admin_session_v1";
-const gate = document.getElementById("jrs-auth");
-const loginForm = document.getElementById("jrs-auth-form");
-const nameBox = document.getElementById("jrs-auth-name-box");
-const confirmBox = document.getElementById("jrs-auth-confirm-box");
-const errorBox = document.getElementById("jrs-auth-error");
-let isFirstSetup = false;
-let busy = false;
-function getAdmin(){
-  try { const a = JSON.parse(localStorage.getItem(ADMIN_KEY)); return a && a.hash && a.salt && a.email ? a : null; } catch(e){ return null; }
+const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
+const MODULES=["dashboard","equipment","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
+const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","Administrador"];
+const ROLE_DEFAULTS={
+"Básico":{view:["dashboard","equipment"],edit:[]},
+"Operacional":{view:["dashboard","equipment","bookings","operations"],edit:["bookings","operations"]},
+"Comercial":{view:["dashboard","equipment","quotes","bookings","clients"],edit:["quotes","clients"]},
+"Gestor":{view:["dashboard","equipment","quotes","bookings","operations","clients","finance","intelligence"],edit:["equipment","quotes","bookings","operations","clients","finance"]},
+"Administrador":{view:MODULES,edit:MODULES}
+};
+const gate=document.getElementById("jrs-auth"),form=document.getElementById("jrs-auth-form");
+const err=document.getElementById("jrs-auth-error");
+const pwdInput=document.getElementById("jrs-auth-password");
+const emailInput=document.getElementById("jrs-auth-email");
+const confirmInput=document.getElementById("jrs-auth-confirm");
+let logged=null,pendingChange=null,firstSetup=false,busy=false;
+const normalEmail=s=>String(s||"").trim().toLowerCase();
+const safeUser=u=>u?({id:u.id,name:u.name,email:u.email,role:u.role,active:u.active!==false,permissions:u.permissions||preset(u.role),mustChange:!!u.mustChange}):null;
+function getRoot(){try{const a=JSON.parse(localStorage.getItem(ADMIN_KEY));return a&&a.hash&&a.salt&&a.email?{...a,id:"ADMIN-ROOT",role:"Administrador",active:true}:null}catch(e){return null}}
+function getUsers(){try{const u=JSON.parse(localStorage.getItem(USERS_KEY));return Array.isArray(u)?u:[]}catch(e){return []}}
+function saveUsers(users){localStorage.setItem(USERS_KEY,JSON.stringify(users))}
+function getAll(){const a=getRoot();return [...(a?[a]:[]),...getUsers()]}
+function findUser(id){return getAll().find(u=>u.id===id)}
+function getLive(){const u=logged&&findUser(logged.id);return u&&u.active!==false?u:null}
+function preset(role){const r=ROLE_DEFAULTS[role]||ROLE_DEFAULTS["Básico"];return Object.fromEntries(MODULES.map(m=>[m,{view:r.view.includes(m),edit:r.edit.includes(m)}]))}
+function getPermissions(u){if(!u)return preset("Básico");if(u.role==="Administrador")return preset("Administrador");const p=u.permissions||preset(u.role);return Object.fromEntries(MODULES.map(m=>[m,{view:m!=="accesses"&&Boolean(p[m]?.view||p[m]?.edit||m==="dashboard"),edit:m!=="accesses"&&Boolean(p[m]?.edit)}]))}
+function canView(m){const u=getLive();return !!u&&!!getPermissions(u)[m]?.view}
+function canEdit(m){const u=getLive();return !!u&&!!getPermissions(u)[m]?.edit}
+function assertAdmin(){if(!getLive()||getLive().role!=="Administrador")throw new Error("Apenas administradores podem gerenciar acessos.")}
+function bytesToHex(b){return Array.from(b,x=>x.toString(16).padStart(2,"0")).join("")}
+function hexToBytes(s){if(typeof s!=="string"||s.length%2)throw Error("Dados inválidos");return new Uint8Array(s.match(/../g).map(x=>parseInt(x,16)))}
+async function hashPassword(pass,salt,iterations){
+if(!crypto||!crypto.subtle)throw Error("Navegador sem criptografia segura");
+const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),{name:"PBKDF2"},false,["deriveBits"]);
+const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:hexToBytes(salt),iterations,hash:"SHA-256"},key,256);return bytesToHex(new Uint8Array(bits))
 }
-function setError(s){ errorBox.textContent=s||""; }
-function bytesToHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
-function hexToBytes(s){if(typeof s!=="string"||s.length%2)throw new Error("Formato de dados inválido");return new Uint8Array(s.match(/../g).map(x=>parseInt(x,16)));}
-async function derivePassword(pass,salt,iters){
-  if(!window.crypto||!window.crypto.subtle)throw new Error("Este navegador não permite criptografia segura.");
-  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),{name:"PBKDF2"},false,["deriveBits"]);
-  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:hexToBytes(salt),iterations:iters,hash:"SHA-256"},key,256);
-  return bytesToHex(new Uint8Array(bits));
+async function credentials(pass){validatePassword(pass);const salt=bytesToHex(crypto.getRandomValues(new Uint8Array(16)));const iterations=210000;return{salt,iterations,hash:await hashPassword(pass,salt,iterations)}}
+function validatePassword(pass){if(String(pass).length<10||!/[a-zA-ZÀ-ÿ]/.test(pass)||!/\d/.test(pass))throw Error("Senha: use pelo menos 10 caracteres com letras e números.")}
+function validateRecord(d,id){
+const name=String(d.name||"").trim(),email=normalEmail(d.email),role=d.role;
+if(name.length<2)throw Error("Informe o nome completo do funcionário.");
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error("Informe um e-mail válido.");
+if(!ROLE_NAMES.includes(role))throw Error("Selecione um nível de acesso válido.");
+if(getAll().some(u=>u.email===email&&u.id!==id))throw Error("Este e-mail já está cadastrado.");
+return{name,email,role,active:d.active!==false,permissions:role==="Administrador"?preset(role):cleanPermissions(d.permissions,role)}
 }
-function sessionValue(a){return a.email+"|"+a.hash;}
-function viewMode(){
-  const admin=getAdmin();
-  isFirstSetup=!admin;
-  setError("");
-  document.getElementById("jrs-auth-mode").textContent=isFirstSetup?"PRIMEIRO ACESSO · ADMINISTRADOR":"PAINEL ADMINISTRATIVO";
-  document.getElementById("jrs-auth-title").textContent=isFirstSetup?"Crie sua conta administradora.":"Acesse sua conta.";
-  document.getElementById("jrs-auth-description").textContent=isFirstSetup?"Defina o responsável inicial pelo painel JRS SMART RENTAL nesta demonstração.":"Digite o e-mail e a senha cadastrados neste navegador.";
-  document.getElementById("jrs-auth-submit").textContent=isFirstSetup?"CRIAR ADMINISTRADOR →":"ENTRAR NO PAINEL →";
-  document.getElementById("jrs-auth-hint").textContent=isFirstSetup?"A senha precisa ter no mínimo 10 caracteres, incluindo letras e números. Não existe senha padrão.":"O cadastro é local a este navegador. Para autenticação multiusuário será necessário conectar um serviço de identidade com banco de dados.";
-  nameBox.style.display=isFirstSetup?"block":"none";
-  confirmBox.style.display=isFirstSetup?"block":"none";
-  document.getElementById("jrs-auth-name").required=isFirstSetup;
-  document.getElementById("jrs-auth-confirm").required=isFirstSetup;
-  document.getElementById("jrs-auth-password").autocomplete=isFirstSetup?"new-password":"current-password";
-  if(admin)document.getElementById("jrs-auth-email").value=admin.email;
-  loginForm.reset();
-  if(admin)document.getElementById("jrs-auth-email").value=admin.email;
-  loginForm.style.display="block";
+function cleanPermissions(p,role){const def=preset(role),x={};for(const m of MODULES){const v=p?.[m]||def[m];x[m]={view:m==="dashboard"?true:m==="accesses"?false:Boolean(v.view||v.edit),edit:m==="accesses"?false:Boolean(v.edit)}}return x}
+async function create(data){
+assertAdmin();if(getUsers().length>=200)throw Error("Limite demonstrativo de 200 colaboradores.");
+const record=validateRecord(data,null);const sec=await credentials(data.temporaryPassword);
+const u={...record,id:"USR-"+crypto.randomUUID(),...sec,mustChange:true,createdAt:new Date().toISOString()};
+const all=getUsers();all.push(u);saveUsers(all);return safeUser(u)
 }
-function unlock(a){
-  document.body.classList.add("jrs-unlocked");
-  sessionStorage.setItem(SESSION_KEY,sessionValue(a));
-  gate.setAttribute("aria-hidden","true");
-  const right=document.querySelector(".top .right");
-  let bar=document.getElementById("jrs-auth-userbar");
-  if(!bar){
-    bar=document.createElement("span"); bar.id="jrs-auth-userbar";bar.style.cssText="display:flex;align-items:center;gap:9px;";
-    right.appendChild(bar);
-  }
-  bar.innerHTML='<span class="auth-logged">◉ <span id="jrs-auth-usertext"></span></span><button class="btn tiny" id="jrs-logout-btn" title="Encerrar acesso ao painel">Sair</button>';
-  document.getElementById("jrs-auth-usertext").textContent=a.name||"Administrador";
-  document.getElementById("jrs-logout-btn").addEventListener("click",lock);
+function update(id,data){
+assertAdmin();if(id==="ADMIN-ROOT")throw Error("O administrador principal não pode ser modificado.");
+const all=getUsers(),i=all.findIndex(u=>u.id===id);if(i<0)throw Error("Funcionário não encontrado.");
+const old=all[i];const rec=validateRecord({...old,...data},id);
+if(old.id===logged?.id&&(!rec.active||rec.role!=="Administrador"))throw Error("Não é possível desativar ou rebaixar a própria conta.");
+all[i]={...old,...rec};saveUsers(all);return safeUser(all[i])
+}
+async function resetPassword(id,pass){assertAdmin();const all=getUsers(),i=all.findIndex(u=>u.id===id);if(i<0)throw Error("Funcionário não encontrado.");const sec=await credentials(pass);all[i]={...all[i],...sec,mustChange:true};saveUsers(all);return true}
+window.JRSAccess={preset,canView,canEdit,list:()=>getUsers().map(safeUser),root:()=>safeUser(getRoot()),current:()=>safeUser(getLive()),create,update,resetPassword,logout:lock};
+function title(k,t,d,b){document.getElementById("jrs-auth-mode").textContent=k;document.getElementById("jrs-auth-title").textContent=t;document.getElementById("jrs-auth-description").textContent=d;document.getElementById("jrs-auth-submit").textContent=b;}
+function showError(s){err.textContent=s||""}
+function showLogin(){
+pendingChange=null;firstSetup=!getRoot();showError("");
+const create=firstSetup;
+title(create?"PRIMEIRO ACESSO · ADMINISTRADOR":"ACESSO À PLATAFORMA",create?"Crie sua conta administradora.":"Acesse sua conta.",create?"Configure o primeiro administrador deste navegador.":"Use o e-mail e a senha cadastrados nesta demonstração.",create?"CRIAR ADMINISTRADOR →":"ENTRAR NO PAINEL →");
+document.getElementById("jrs-auth-name-box").style.display=create?"block":"none";
+document.getElementById("jrs-auth-confirm-box").style.display=create?"block":"none";
+document.getElementById("jrs-auth-name").required=create;
+confirmInput.required=create;
+emailInput.readOnly=false;
+emailInput.value="";
+pwdInput.value="";confirmInput.value="";
+pwdInput.autocomplete=create?"new-password":"current-password";
+document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Acesso local a este navegador. Funcionários de outros dispositivos precisam de autenticação com servidor.";
+form.style.display="block";
+}
+function showChange(u){
+pendingChange=u;firstSetup=false;showError("");
+title("PRIMEIRO ACESSO · FUNCIONÁRIO","Defina sua senha.","Você entrou com uma senha temporária. Crie uma senha nova e confirme para continuar.","DEFINIR NOVA SENHA →");
+document.getElementById("jrs-auth-name-box").style.display="none";
+document.getElementById("jrs-auth-confirm-box").style.display="block";
+document.getElementById("jrs-auth-name").required=false;
+confirmInput.required=true;
+emailInput.value=u.email;emailInput.readOnly=true;pwdInput.value="";confirmInput.value="";
+pwdInput.autocomplete="new-password";
+document.getElementById("jrs-auth-hint").textContent="Esta troca é obrigatória ao primeiro acesso do funcionário.";
+}
+function sessionValue(u){return u.id+"|"+u.email+"|"+u.hash}
+function unlock(u){
+logged=u;
+sessionStorage.setItem(SESSION_KEY,sessionValue(u));
+document.body.classList.add("jrs-unlocked");
+gate.setAttribute("aria-hidden","true");
+const right=document.querySelector(".top .right");
+let bar=document.getElementById("jrs-auth-userbar");
+if(!bar){bar=document.createElement("span");bar.id="jrs-auth-userbar";bar.style.cssText="display:flex;align-items:center;gap:9px;";right.appendChild(bar)}
+bar.innerHTML='<span class="auth-logged">◉ <span id="jrs-auth-usertext"></span></span><button class="btn tiny" id="jrs-logout-btn" type="button">Sair</button>';
+document.getElementById("jrs-auth-usertext").textContent=(u.name||"Usuário")+" · "+u.role;
+document.getElementById("jrs-logout-btn").addEventListener("click",lock);
+if(typeof go==="function")go("dashboard");
 }
 function lock(){
-  sessionStorage.removeItem(SESSION_KEY);
-  document.body.classList.remove("jrs-unlocked");
-  gate.removeAttribute("aria-hidden");
-  const bar=document.getElementById("jrs-auth-userbar");
-  if(bar)bar.remove();
-  try{closeDialog()}catch(e){}
-  viewMode();
+logged=null;pendingChange=null;sessionStorage.removeItem(SESSION_KEY);
+document.body.classList.remove("jrs-unlocked");gate.removeAttribute("aria-hidden");
+const b=document.getElementById("jrs-auth-userbar");if(b)b.remove();
+try{closeDialog()}catch(e){}
+showLogin();
 }
-async function submitCredentials(e){
-  e.preventDefault();if(busy)return;
-  busy=true;
-  const btn=document.getElementById("jrs-auth-submit");btn.disabled=true;setError("");
-  try{
-    const email=document.getElementById("jrs-auth-email").value.trim().toLowerCase();
-    const pass=document.getElementById("jrs-auth-password").value;
-    if(isFirstSetup){
-      if(getAdmin())throw new Error("Um administrador já foi cadastrado neste navegador. Faça login.");
-      const name=document.getElementById("jrs-auth-name").value.trim();
-      const confirm=document.getElementById("jrs-auth-confirm").value;
-      if(name.length<2)throw new Error("Informe o nome completo do administrador.");
-      if(pass.length<10||!/[\p{L}]/u.test(pass)||!/\d/.test(pass))throw new Error("Use ao menos 10 caracteres, incluindo letras e números.");
-      if(pass!==confirm)throw new Error("As duas senhas não coincidem.");
-      const salt=bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
-      const iterations=210000;
-      const hash=await derivePassword(pass,salt,iterations);
-      const admin={role:"Administrador",name,email,hash,salt,iterations,createdAt:new Date().toISOString()};
-      localStorage.setItem(ADMIN_KEY,JSON.stringify(admin));
-      unlock(admin);
-    }else{
-      const a=getAdmin();
-      if(!a)throw new Error("Conta não encontrada neste navegador.");
-      if(email!==a.email)throw new Error("E-mail ou senha incorretos.");
-      const hash=await derivePassword(pass,a.salt,a.iterations||210000);
-      if(hash!==a.hash)throw new Error("E-mail ou senha incorretos.");
-      unlock(a);
-    }
-    loginForm.reset();
-  }catch(err){setError(err.message||"Não foi possível concluir. Tente novamente.")}
-  finally{btn.disabled=false;busy=false;}
-}
-function togglePassword(){
-  const inp=document.getElementById("jrs-auth-password");
-  const reveal=inp.type==="password";
-  inp.type=reveal?"text":"password";
-  this.textContent=reveal?"Ocultar":"Mostrar";
-  this.setAttribute("aria-label",reveal?"Ocultar senha":"Mostrar senha");
-}
-loginForm.addEventListener("submit",submitCredentials);
-document.getElementById("jrs-auth-toggle").addEventListener("click",togglePassword);
-const current=getAdmin();
-if(current && sessionStorage.getItem(SESSION_KEY)===sessionValue(current)){
-  unlock(current);
+async function submit(e){
+e.preventDefault();if(busy)return;busy=true;const btn=document.getElementById("jrs-auth-submit");btn.disabled=true;showError("");
+try{
+const email=normalEmail(emailInput.value),pass=pwdInput.value;
+if(firstSetup){
+if(getRoot())throw Error("Administrador já cadastrado neste navegador.");
+const name=document.getElementById("jrs-auth-name").value.trim(),confirm=confirmInput.value;
+if(name.length<2)throw Error("Informe o nome do administrador.");
+if(pass!==confirm)throw Error("As senhas não coincidem.");
+const sec=await credentials(pass),u={id:"ADMIN-ROOT",name,email,role:"Administrador",active:true,...sec,createdAt:new Date().toISOString()};
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error("Informe e-mail válido.");
+localStorage.setItem(ADMIN_KEY,JSON.stringify(u));unlock(u);
+}else if(pendingChange){
+if(pass!==confirmInput.value)throw Error("As senhas não coincidem.");
+const sec=await credentials(pass),all=getUsers(),i=all.findIndex(u=>u.id===pendingChange.id);
+if(i<0||!all[i].active)throw Error("Funcionário bloqueado ou não encontrado.");
+all[i]={...all[i],...sec,mustChange:false};saveUsers(all);const user=all[i];pendingChange=null;unlock(user);
 }else{
-  sessionStorage.removeItem(SESSION_KEY);
-  viewMode();
+const u=getAll().find(x=>x.email===email&&x.active!==false);
+if(!u)throw Error("E-mail ou senha incorretos.");
+const hash=await hashPassword(pass,u.salt,u.iterations||210000);
+if(hash!==u.hash)throw Error("E-mail ou senha incorretos.");
+if(u.mustChange){showChange(u);return;}
+unlock(u);
 }
+form.reset();
+}catch(ex){showError(ex.message||"Não foi possível entrar.")}
+finally{btn.disabled=false;busy=false}
+}
+form.addEventListener("submit",submit);
+document.getElementById("jrs-auth-toggle").addEventListener("click",function(){const shown=pwdInput.type==="password";pwdInput.type=shown?"text":"password";this.textContent=shown?"Ocultar":"Mostrar";this.setAttribute("aria-label",shown?"Ocultar senha":"Mostrar senha")});
+window.addEventListener("storage",e=>{if([ADMIN_KEY,USERS_KEY].includes(e.key)&&logged){const u=getLive();if(!u||u.hash!==logged.hash)lock()}});
+const session=sessionStorage.getItem(SESSION_KEY),current=getAll().find(u=>u.active!==false&&sessionValue(u)===session);
+if(session&&current){unlock(current)}else{sessionStorage.removeItem(SESSION_KEY);showLogin()}
 })();
+
 </script>
 </body></html>
