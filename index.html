@@ -18,7 +18,16 @@
 #jrs-auth .jrs-auth-brand-card img{width:100%;display:block;height:auto;aspect-ratio:450/171}
 #jrs-auth .jrs-auth-brand-caption{font-weight:800;letter-spacing:2px;font-size:10px;color:#ffd34d}
 @media(max-width:850px){#jrs-auth .jrs-auth-brand-card{width:220px}#jrs-auth .jrs-auth-brand-caption{font-size:9px}}
-</style></head>
+</style><style id="jrs-proposals-editor-style">
+.proposal-modal .dialog-panel{width:min(850px,100%);max-height:96vh}
+.proposal-editor-intro{padding:12px 15px 3px;margin-bottom:17px;border-left:4px solid #ffcd00;background:#262923;border-radius:6px}
+.proposal-editor-intro p{color:#a7b1ba;font-size:12px}
+.proposal-editor-mark{font-weight:900;font-size:17px;letter-spacing:1px}.proposal-editor-mark span{color:#ffcd00}
+.proposal-section{border-top:1px solid #3d4651;padding-top:21px;margin-top:10px}
+.proposal-section h3{color:#ffcd00;text-transform:uppercase;letter-spacing:1px;font-size:13px}
+.proposal-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:10px}
+</style>
+</head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -41,22 +50,23 @@ operations:[{id:'OP-001',client:'Cliente Exemplo B',equipment:'Munck demonstrati
 finance:[{id:'FN-001',description:'Locação de exemplo 01',type:'Receita',value:12500,date:'2026-11-01'},{id:'FN-002',description:'Manutenção de exemplo',type:'Despesa',value:2200,date:'2026-11-01'}]};
 let db;
 try{db=JSON.parse(localStorage.getItem(STORE))||structuredClone(seed)}catch(e){db=JSON.parse(JSON.stringify(seed))}
+db.proposals=Array.isArray(db.proposals)?db.proposals:[];
 let view='dashboard',filterText='',filterCategory='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const uid=p=>p+'-'+Math.floor(Date.now()%1000000).toString().padStart(6,'0');
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
 const status=(s)=>{let z=/disponível|aprov|conclu|confirmad/i.test(s)?'available':/reserva|análise|novo|agend|pendente/i.test(s)?'reserved':/opera|proposta|negocia|andamento/i.test(s)?'working':'inactive';return '<span class="status '+z+'">'+esc(s)+'</span>'};
-const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m);
-const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m);
+const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m==='proposals'?'quotes':m);
+const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m==='proposals'?'quotes':m);
 const requireEdit=m=>{if(canEdit(m))return true;alert('Seu perfil não permite alterar dados deste módulo.');return false};
 const header=(title,desc,button,action)=>'<div class="headline"><div><span class="eyebrow">JRS GUINDASTES · LOCAÇÕES</span><h1>'+title+'</h1><p class="subtitle">'+desc+'</p></div>'+(button&&((view==='dashboard')?canEdit('quotes'):canEdit(view))?'<button class="btn primary" onclick="'+action+'">＋ '+button+'</button>':'')+'</div>';
 const table=(cols,rows)=>'<div class="card tablewrap"><table class="table"><thead><tr>'+cols.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+ (rows.length?rows.join(''):'<tr><td colspan="'+cols.length+'" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div>';
 function renderNav(){document.getElementById('nav').innerHTML=sections.map(s=>{const items=s[1].filter(i=>canView(i[0]));return items.length?'<div class="section-label">'+s[0]+'</div>'+items.map(i=>'<button class="nav-item '+(view===i[0]?'active':'')+'" onclick="go(\''+i[0]+'\')"><span class="ico">'+i[1]+'</span>'+i[2]+'</button>').join(''):''}).join('')}
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
+function render(){if(!canView(view))view='dashboard';renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
 function dash(){let income=db.finance.filter(f=>f.type==='Receita').reduce((t,f)=>t+Number(f.value),0),op=db.equipment.filter(e=>e.status==='Em operação').length,free=db.equipment.filter(e=>e.status==='Disponível').length,open=db.quotes.filter(q=>!['Concluído','Perdido'].includes(q.status)).length;
 let stat=[['Equipamentos disponíveis',free,'⚙','Frota cadastrada'],['Equipamentos em operação',op,'↗','Uso demonstrativo'],['Locações confirmadas',db.bookings.filter(b=>b.status==='Confirmada').length,'▦','Reservas ativas'],['Orçamentos em andamento',open,'▤','Funil comercial'],['Receitas lançadas',money(income),'◈','Valores de demonstração'],['Taxa de utilização',db.equipment.length?Math.round(100*op/db.equipment.length)+'%':'0%','▥','Em operação / frota']];
 let byCat=cats.map(c=>({c,n:db.equipment.filter(e=>e.category===c).length}));
@@ -66,7 +76,130 @@ function equipment(){let list=db.equipment.filter(e=>(!filterText||(e.name+' '+e
 return header('Gestão de equipamentos','Cadastre e organize a frota disponível para locação.','Novo equipamento',"openEquipment()")+'<div class="filters"><input class="search" placeholder="Buscar equipamento..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshEquipment()"><select onchange="filterCategory=this.value;refreshEquipment()"><option value="">Todas as categorias</option>'+cats.map(c=>'<option '+(filterCategory===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div><div id="equipmentResults">'+equipmentItems(list)+'</div>'}
 function refreshEquipment(){let list=db.equipment.filter(e=>(!filterText||(e.name+' '+e.category).toLowerCase().includes(filterText.toLowerCase()))&&(!filterCategory||e.category===filterCategory));document.getElementById('equipmentResults').innerHTML=equipmentItems(list)}
 function equipmentItems(list){let icons={'Guindastes':'🏗️','Caminhões Munck':'🚛','Empilhadeiras':'🏭','Plataformas Elevatórias':'⚙️','Contêineres':'📦'};return '<div class="equipment-grid">'+list.map(e=>'<div class="equipment-card"><div class="equipment-cover"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>Capacidade: '+esc(e.capacity||'A cadastrar')+'</span></div><div class="equip-foot"><span class="muted">Cadastro técnico</span><button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button></div></div></div>').join('')+'</div>'+(list.length?'':'<div class="card empty">Nenhum equipamento encontrado.</div>')}
-function quotes(){return header('Orçamentos','Acompanhe os pedidos e avance as negociações.','Novo orçamento',"openQuote()")+'<div class="card" style="margin-bottom:18px"><div class="flex">'+['Novo','Em análise','Proposta enviada','Em negociação','Aprovado','Concluído'].map(s=>'<span class="tag">'+s+': '+db.quotes.filter(q=>q.status===s).length+'</span>').join('')+'</div></div>'+table(['Protocolo','Cliente','Equipamento','Previsão','Valor','Status','Ação'],db.quotes.slice().reverse().map(q=>'<tr><td><b>'+esc(q.id)+'</b></td><td>'+esc(q.client)+'</td><td>'+esc(q.equipment)+'</td><td>'+fmt(q.date)+'</td><td>'+money(q.value)+'</td><td>'+status(q.status)+'</td><td><button class="btn tiny" onclick="advanceQuote(\''+esc(q.id)+'\')">Avançar etapa</button></td></tr>'))}
+function quotes(){return header('Orçamentos','Acompanhe os pedidos e avance as negociações.','Novo orçamento',"openQuote()")+'<div class="card" style="margin-bottom:18px"><div class="flex">'+['Novo','Em análise','Proposta enviada','Em negociação','Aprovado','Concluído'].map(s=>'<span class="tag">'+s+': '+db.quotes.filter(q=>q.status===s).length+'</span>').join('')+'</div></div>'+table(['Protocolo','Cliente','Equipamento','Previsão','Valor','Status','Ações'],db.quotes.slice().reverse().map(q=>'<tr><td><b>'+esc(q.id)+'</b></td><td>'+esc(q.client)+'</td><td>'+esc(q.equipment)+'</td><td>'+fmt(q.date)+'</td><td>'+money(q.value)+'</td><td>'+status(q.status)+'</td><td><div class="actions">'+(canEdit('quotes')?'<button class="btn tiny" onclick="advanceQuote(\''+esc(q.id)+'\')">Avançar etapa</button><button class="btn tiny" onclick="openProposal(null,\''+esc(q.id)+'\')">Gerar proposta</button>':'<span class="muted">Somente leitura</span>')+'</div></td></tr>'))}
+
+/* jrs-proposals-module-v1 - editor comercial local, impressão/PDF via navegador */
+const proposalStatus=['Rascunho','Enviada','Em negociação','Aprovada','Recusada'];
+const proposalPayments=['Pix','Transferência bancária','Boleto','Cartão','Dinheiro','A combinar','Outros'];
+const propSafe=p=>p||{};
+function proposals(){
+ if(!canView('proposals'))return '<div class="card empty">Você não tem acesso a este módulo.</div>';
+ const all=db.proposals||[],draft=all.filter(p=>p.status==='Rascunho').length,sent=all.filter(p=>p.status==='Enviada').length,approved=all.filter(p=>p.status==='Aprovada').length;
+ const rows=all.slice().sort((a,b)=>String(b.updatedAt||b.issueDate||'').localeCompare(String(a.updatedAt||a.issueDate||''))).map(p=>'<tr><td><b>'+esc(p.number)+'</b><br><small>'+fmt(p.issueDate)+'</small></td><td><b>'+esc(p.tenant)+'</b><br><small>'+esc(p.document||'')+'</small></td><td>'+esc(p.equipment)+'</td><td>'+fmt(p.startDate)+' '+esc(p.startTime||'')+'</td><td>'+money(p.value)+'</td><td>'+status(p.status||'Rascunho')+'</td><td><div class="actions">'+(canEdit('proposals')?'<button class="btn tiny" onclick="openProposal(\''+esc(p.id)+'\')">Editar</button>':'')+'<button class="btn tiny" onclick="printProposal(\''+esc(p.id)+'\')">Visualizar / PDF</button></div></td></tr>');
+ return header('Propostas comerciais','Prepare, edite e imprima as condições de locação com a identidade JRS GUINDASTES.','Nova proposta',"openProposal()")
+ +'<div class="stats"><div class="card"><small>Propostas cadastradas</small><div class="bigmetric">'+all.length+'</div></div><div class="card"><small>Rascunhos</small><div class="bigmetric">'+draft+'</div></div><div class="card"><small>Enviadas / aprovadas</small><div class="bigmetric">'+(sent+approved)+'</div></div></div>'
+ +'<div class="note">Modelo editável próprio da JRS, ainda não reproduzindo um documento de referência específico. Os dados ficam salvos somente neste navegador. Para transformar a impressão em PDF, escolha “Salvar como PDF” na janela de impressão.</div>'
+ +table(['Proposta','Locatário','Equipamento / serviço','Início','Valor','Situação','Ações'],rows);
+}
+function proposalInput(label,name,type='text',required=false,options){
+ let contents;
+ if(type==='textarea')contents='<textarea id="p-'+name+'" name="'+name+'" rows="3" '+(required?'required':'')+'></textarea>';
+ else if(options)contents='<select id="p-'+name+'" name="'+name+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>';
+ else contents='<input id="p-'+name+'" name="'+name+'" type="'+type+'" '+(required?'required':'')+' '+(type==='number'?'min="0" step="0.01"':'')+' />';
+ return '<div class="field"><label for="p-'+name+'">'+label+(required?' *':'')+'</label>'+contents+'</div>'
+}
+function proposalSection(t){return '<div class="span2 proposal-section"><h3>'+t+'</h3></div>'}
+function proposedOptions(label,items,selected){return '<option value="">'+label+'</option>'+items.map(x=>'<option value="'+esc(x)+'" '+(x===selected?'selected':'')+'>'+esc(x)+'</option>').join('')}
+function defaultProposal(q){
+ const today=new Date().toISOString().slice(0,10),qclient=db.clients.find(c=>c.name===q?.client);
+ return {id:uid('PROP'),number:'PC-'+new Date().getFullYear()+'-'+String(db.proposals.length+1).padStart(4,'0'),quoteId:q?.id||'',issueDate:today,validUntil:'',status:'Rascunho',tenant:q?.client||'',document:'',contact:qclient?.name||'',phone:qclient?.phone||'',email:qclient?.email||'',equipment:q?.equipment||'',quantity:'1',technicalDetails:'',address:'',city:qclient?.city||'',state:'SP',startDate:q?.date||'',startTime:'',endDate:'',endTime:'',duration:'',scope:q?.description||'',operatorIncluded:'A combinar',value:q?.value||'',paymentMethod:'A combinar',paymentTerms:'',dueDate:'',commercialTerms:'',observations:'',issuer:'Equipe comercial JRS'};
+}
+function openProposal(id,quoteId){
+ if(!requireEdit('proposals'))return;
+ const p=id?db.proposals.find(x=>x.id===id):defaultProposal(db.quotes.find(q=>q.id===quoteId));
+ if(!p)return alert('Proposta não encontrada.');
+ const linkedQuotes='<select id="p-quoteId" name="quoteId"><option value="">Proposta independente</option>'+db.quotes.map(q=>'<option value="'+esc(q.id)+'">'+esc(q.id)+' — '+esc(q.client)+'</option>').join('')+'</select>';
+ const html='<div class="proposal-editor-intro"><div class="proposal-editor-mark">JRS <span>GUINDASTES</span></div><p>Preencha as informações comerciais. Campos marcados com * são obrigatórios. Nenhum dado é enviado automaticamente.</p></div>'
+ +'<form id="proposalForm" class="form-grid">'
+ +proposalSection('01 · Identificação da proposta')
+ +proposalInput('Número da proposta','number','text',true)
+ +proposalInput('Data de emissão','issueDate','date',true)
+ +proposalInput('Validade da proposta','validUntil','date')
+ +proposalInput('Situação','status','text',true,proposalStatus)
+ +'<div class="field span2"><label for="p-quoteId">Orçamento de origem</label>'+linkedQuotes+'</div>'
+ +proposalSection('02 · Dados do locatário')
+ +proposalInput('Locatário / Razão social','tenant','text',true)
+ +proposalInput('CPF / CNPJ','document')
+ +proposalInput('Nome do contato','contact')
+ +proposalInput('Telefone / WhatsApp','phone')
+ +'<div class="span2">'+proposalInput('E-mail','email','email')+'</div>'
+ +proposalSection('03 · Equipamento e serviço locado')
+ +'<div class="span2">'+proposalInput('Equipamento(s) / serviço(s)','equipment','textarea',true)+'</div>'
+ +proposalInput('Quantidade','quantity','number')
+ +proposalInput('Operador incluído','operatorIncluded','text',false,['A combinar','Sim','Não'])
+ +'<div class="span2">'+proposalInput('Modelo e informações técnicas','technicalDetails','textarea')+'</div>'
+ +proposalSection('04 · Endereço, data e horário da operação')
+ +'<div class="span2">'+proposalInput('Endereço completo da operação','address','textarea',true)+'</div>'
+ +proposalInput('Cidade','city','text',true)
+ +proposalInput('Estado (UF)','state')
+ +proposalInput('Data de início','startDate','date',true)
+ +proposalInput('Horário de início','startTime','time',true)
+ +proposalInput('Data de término prevista','endDate','date')
+ +proposalInput('Horário de término previsto','endTime','time')
+ +'<div class="span2">'+proposalInput('Período / duração estimada','duration')+'</div>'
+ +proposalSection('05 · Escopo e condições comerciais')
+ +'<div class="span2">'+proposalInput('Escopo detalhado do serviço','scope','textarea',true)+'</div>'
+ +proposalInput('Valor total proposto (R$)','value','number',true)
+ +proposalInput('Forma de pagamento','paymentMethod','text',true,proposalPayments)
+ +'<div class="span2">'+proposalInput('Condições de pagamento (prazo, parcelas, sinal etc.)','paymentTerms','textarea',true)+'</div>'
+ +proposalInput('Data de vencimento (se aplicável)','dueDate','date')
+ +proposalInput('Responsável comercial','issuer')
+ +'<div class="span2">'+proposalInput('Termos, exclusões e responsabilidades','commercialTerms','textarea')+'</div>'
+ +'<div class="span2">'+proposalInput('Observações adicionais','observations','textarea')+'</div>'
+ +'<div class="span2 proposal-actions"><button class="btn primary" type="submit">Salvar proposta</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div>'
+ +'<div class="span2" id="proposalError" role="alert" style="color:#ff9e9e"></div></form>';
+ openDialog(id?'Editar proposta comercial':'Nova proposta comercial',html);
+ document.getElementById('dialog').classList.add('proposal-modal');
+ for(const el of document.querySelectorAll('#proposalForm [name]')){if(p[el.name]!==undefined&&p[el.name]!==null)el.value=p[el.name]}
+ const form=document.getElementById('proposalForm');
+ form.addEventListener('submit',ev=>{
+  ev.preventDefault();
+  try{
+   const data=Object.fromEntries(new FormData(form)),tenant=data.tenant.trim(),equip=data.equipment.trim(),scope=data.scope.trim();
+   if(!tenant||!equip||!scope||!data.address.trim()||!data.paymentTerms.trim())throw Error('Preencha locatário, equipamento, endereço, escopo e condições de pagamento.');
+   if(data.endDate&&data.startDate&&data.endDate<data.startDate)throw Error('A data de término não pode ser anterior à de início.');
+   if(data.endDate===data.startDate&&data.endTime&&data.startTime&&data.endTime<data.startTime)throw Error('O horário final não pode ser anterior ao inicial.');
+   if(!Number.isFinite(Number(data.value))||Number(data.value)<0)throw Error('O valor deve ser válido.');
+   if(db.proposals.some(x=>x.number.toLowerCase()===data.number.trim().toLowerCase()&&x.id!==p.id))throw Error('Esse número de proposta já está em uso.');
+   const updated={...p,...data,number:data.number.trim(),tenant,equipment:equip,scope,value:Number(data.value),updatedAt:new Date().toISOString()};
+   if(id){const index=db.proposals.findIndex(x=>x.id===id);if(index<0)throw Error('Proposta não localizada.');db.proposals[index]=updated}
+   else db.proposals.push(updated);
+   save();closeDialog();render();alert('Proposta salva neste navegador. Você pode editar e gerar a versão PDF.');
+  }catch(e){document.getElementById('proposalError').textContent=e.message||'Erro ao salvar.'}
+ });
+}
+const proposalPrintText=s=>esc(s==null?'':s).replace(/\r?\n/g,'\n');
+function printProposal(id){
+ if(!canView('proposals'))return;
+ const p=db.proposals.find(x=>x.id===id);if(!p)return alert('Proposta não encontrada.');
+ const w=window.open('','_blank');
+ if(!w)return alert('O navegador bloqueou a abertura da proposta. Habilite janelas pop-up para este site.');
+ const logo=document.querySelector('.jrs-official-logo')?.src||'';
+ const logoHtml=logo.startsWith('data:image/')?'<img src="'+logo+'" alt="JRS GUINDASTES" style="width:188px;max-height:82px;object-fit:contain">':'<strong>JRS GUINDASTES</strong>';
+ const val=k=>proposalPrintText(p[k]);
+ const cell=(label,value)=>'<div class="pc-cell"><span>'+label+'</span><div class="pc-value">'+(value||'—')+'</div></div>';
+ const section=(title,body)=>'<section class="pc-section"><div class="pc-section-title">'+title+'</div><div class="pc-grid">'+body+'</div></section>';
+ const doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+val('number')+' — JRS GUINDASTES</title><style>'
+ +'@page{size:A4;margin:13mm}*{box-sizing:border-box}body{font:11px/1.46 Arial,sans-serif;color:#1b1b1b;margin:0;background:white}.print-tools{padding:12px 20px;background:#181b20;color:white;display:flex;align-items:center;justify-content:space-between;font-size:12px}.print-tools button{background:#ffcd00;border:0;border-radius:6px;font-weight:700;padding:9px 16px;cursor:pointer}.paper{max-width:850px;margin:auto;padding:22px 30px;background:white}.pc-header{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #ffcc00;padding-bottom:12px}.pc-brand-sub{font-weight:700;letter-spacing:1px;font-size:11px;color:#414141;text-align:right}.pc-title{margin:19px 0 7px;font-weight:900;font-size:23px;letter-spacing:-.7px}.pc-meta{display:flex;gap:22px;color:#666;font-size:10px;margin-bottom:19px}.pc-section{border:1px solid #dedede;margin:11px 0;break-inside:avoid;page-break-inside:avoid}.pc-section-title{background:#1b1b1b;color:#ffcd00;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.7px;padding:8px 12px}.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 17px;padding:11px 12px}.pc-cell{min-width:0}.pc-cell>span{display:block;color:#737373;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px}.pc-value{white-space:pre-wrap;font-size:11px;margin-top:2px;overflow-wrap:anywhere;font-weight:600}.pc-span{grid-column:1/-1}.pc-highlight{background:#fff4c2;padding:12px;border-left:4px solid #ffcc00}.pc-highlight .pc-value{font-size:19px}.pc-footer{margin-top:22px;border-top:2px solid #ffcd00;padding-top:10px;display:flex;justify-content:space-between;gap:15px;color:#4b4b4b;font-size:10px}.pc-ack{margin-top:42px;display:flex;justify-content:space-between;gap:30px;break-inside:avoid}.pc-sign{border-top:1px solid #777;padding:6px;flex:1;text-align:center;font-size:10px;color:#777}@media print{.print-tools{display:none}.paper{padding:0;max-width:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+ +'</style></head><body><div class="print-tools"><span>JRS GUINDASTES · Revisão da proposta comercial</span><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="paper"><header class="pc-header">'+logoHtml+'<div class="pc-brand-sub">JRS GUINDASTES<br>LOCAÇÃO E MOVIMENTAÇÃO DE CARGAS</div></header>'
+ +'<h1 class="pc-title">PROPOSTA COMERCIAL DE LOCAÇÃO</h1>'
+ +'<div class="pc-meta"><span><b>Nº</b> '+val('number')+'</span><span><b>Emissão:</b> '+esc(fmt(p.issueDate))+'</span><span><b>Validade:</b> '+(p.validUntil?esc(fmt(p.validUntil)):'A combinar')+'</span></div>'
+ +section('01 · Dados do locatário',
+ cell('Locatário / Razão social',val('tenant'))+cell('CPF / CNPJ',val('document'))+cell('Contato',val('contact'))+cell('Telefone / WhatsApp',val('phone'))+cell('E-mail',val('email')))
+ +section('02 · Objeto da locação',
+ '<div class="pc-span">'+cell('Equipamento(s) / serviço(s)',val('equipment'))+'</div>'+cell('Quantidade',val('quantity'))+cell('Operador incluído',val('operatorIncluded'))+'<div class="pc-span">'+cell('Informações técnicas',val('technicalDetails'))+'</div>')
+ +section('03 · Local, data e horários',
+ '<div class="pc-span">'+cell('Endereço da operação',val('address'))+'</div>'+cell('Cidade / UF',val('city')+' / '+val('state'))+cell('Duração estimada',val('duration'))+cell('Data e horário de início',esc(fmt(p.startDate))+' · '+val('startTime'))+cell('Término previsto',p.endDate?esc(fmt(p.endDate))+' · '+val('endTime'):'A definir'))
+ +section('04 · Escopo da operação','<div class="pc-span">'+cell('Descrição dos serviços',val('scope'))+'</div>')
+ +section('05 · Condições comerciais e pagamento',
+ '<div class="pc-span pc-highlight">'+cell('Valor total da proposta',esc(money(p.value)))+'</div>'+cell('Forma de pagamento',val('paymentMethod'))+cell('Vencimento',p.dueDate?esc(fmt(p.dueDate)):'A combinar')+'<div class="pc-span">'+cell('Condições de pagamento',val('paymentTerms'))+'</div>')
+ +(p.commercialTerms?section('06 · Termos, exclusões e responsabilidades','<div class="pc-span">'+cell('Condições acordadas',val('commercialTerms'))+'</div>'):'')
+ +(p.observations?section('07 · Observações','<div class="pc-span">'+cell('Observações adicionais',val('observations'))+'</div>'):'')
+ +'<div class="pc-ack"><div class="pc-sign">JRS GUINDASTES<br>Responsável comercial: '+val('issuer')+'</div><div class="pc-sign">LOCATÁRIO<br>Aceite / assinatura</div></div>'
+ +'<div class="pc-footer"><span>JRS GUINDASTES · Documento comercial</span><span>Proposta '+val('number')+' · Página 1</span></div></main></body></html>';
+ w.document.open();w.document.write(doc);w.document.close();w.focus();
+}
+
 function bookings(){let now=new Date(),year=now.getFullYear(),month=now.getMonth(),first=new Date(year,month,1).getDay(),count=new Date(year,month+1,0).getDate();let dates=Array.from({length:first},()=>'<div></div>');for(let d=1;d<=count;d++){let iso=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),overlaps=db.bookings.filter(b=>iso>=b.start&&iso<=b.end);dates.push('<div class="day"><b>'+d+'</b>'+overlaps.map(b=>'<small title="'+esc(b.client)+'">'+esc(b.equipment.slice(0,18))+'</small>').join('')+'</div>')}
 return header('Agenda de locações','Controle de períodos reservados e conflitos de agenda.','Nova reserva',"openBooking()")+'<div class="duo"><div class="card"><div class="card-head"><h3>'+now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</h3><span class="tag">Visão mensal</span></div><div class="calendar">'+['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>'<div class="dow">'+x+'</div>').join('')+dates.join('')+'</div></div><div class="card"><div class="card-head"><h3>Próximas reservas</h3></div>'+db.bookings.map(b=>'<div class="progress-item"><b>'+esc(b.equipment)+'</b><p class="muted">'+esc(b.client)+'<br>'+fmt(b.start)+' a '+fmt(b.end)+'</p>'+status(b.status)+'</div>').join('')+'</div></div>'+table(['Reserva','Equipamento','Cliente','Início','Fim','Status'],db.bookings.map(b=>'<tr><td>'+esc(b.id)+'</td><td>'+esc(b.equipment)+'</td><td>'+esc(b.client)+'</td><td>'+fmt(b.start)+'</td><td>'+fmt(b.end)+'</td><td>'+status(b.status)+'</td></tr>'))}
 function operations(){return header('Central de operações','Acompanhe serviços, operadores e etapas operacionais.','Nova operação',"openOperation()")+table(['OS','Cliente','Equipamento','Local','Data','Responsável','Status','Ação'],db.operations.slice().reverse().map(o=>'<tr><td><b>'+esc(o.id)+'</b></td><td>'+esc(o.client)+'</td><td>'+esc(o.equipment)+'</td><td>'+esc(o.location)+'</td><td>'+fmt(o.date)+'</td><td>'+esc(o.operator)+'</td><td>'+status(o.status)+'</td><td><button class="btn tiny" onclick="advanceOperation(\''+esc(o.id)+'\')">Avançar</button></td></tr>'))}
@@ -76,7 +209,7 @@ return header('Gestão financeira','Lançamentos manuais de demonstração. Não
 function intelligence(){let total=db.quotes.length,won=db.quotes.filter(q=>['Aprovado','Concluído'].includes(q.status)).length;let cap=Math.max(1,...cats.map(c=>db.equipment.filter(e=>e.category===c).length));return header('JRS Intelligence','Indicadores calculados com base nos registros locais.','','')+'<div class="stats"><div class="card"><small>Solicitações recebidas</small><div class="bigmetric">'+total+'</div></div><div class="card"><small>Conversão comercial</small><div class="bigmetric">'+Math.round(100*won/Math.max(1,total))+'%</div></div><div class="card"><small>Frota cadastrada</small><div class="bigmetric">'+db.equipment.length+'</div></div></div><div class="duo"><div class="card"><h3>Distribuição de equipamentos</h3>'+cats.map(c=>{let n=db.equipment.filter(e=>e.category===c).length;return '<div class="progress-item"><div class="progress-label"><span>'+c+'</span><b>'+n+'</b></div><div class="track"><div class="fill" style="width:'+Math.round(n/cap*100)+'%"></div></div></div>'}).join('')+'</div><div class="card"><h3>Alertas inteligentes</h3><div class="progress-item">◈ '+db.quotes.filter(q=>q.status==='Novo').length+' novas solicitações aguardando análise</div><div class="progress-item">◈ '+db.equipment.filter(e=>e.status==='Manutenção').length+' equipamentos em manutenção</div><div class="progress-item">◈ '+db.bookings.length+' reservas cadastradas</div><div class="note">Os alertas são regras demonstrativas. Não há IA externa conectada.</div></div></div>'}
 function settings(){return header('Configurações','Controles disponíveis no ambiente demonstrativo.','','')+'<div class="card"><h3>Gerenciamento da demonstração</h3><p class="muted">Os dados são armazenados somente neste navegador, por localStorage. Não use informações pessoais, senhas ou dados comerciais reais.</p><div class="actions"><button class="btn" onclick="exportData()">↓ Exportar dados JSON</button><button class="btn" onclick="resetDemo()">↺ Reiniciar demonstração</button></div></div><div class="card" style="margin-top:18px"><h3>Integrações para produção</h3><p class="muted">Supabase: não configurado. Autenticação e permissões: não habilitadas. GPS e WhatsApp: não conectados. Logotipo oficial: aguardando arquivo.</p><span class="pill">MODO DEMO LOCAL</span></div>'}
 function openDialog(title,body){document.getElementById('dialogTitle').textContent=title;document.getElementById('dialogContent').innerHTML=body;document.getElementById('dialog').classList.add('open')}
-function closeDialog(){document.getElementById('dialog').classList.remove('open')}
+function closeDialog(){document.getElementById('dialog').classList.remove('open');document.getElementById('dialog').classList.remove('proposal-modal')}
 const field=(label,name,type='text',required=true,options)=>'<div class="field"><label for="f-'+name+'">'+label+'</label>'+(options?'<select id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>':type==='textarea'?'<textarea id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'></textarea>':'<input id="f-'+name+'" name="'+name+'" type="'+type+'" '+(required?'required':'')+'></div>');
 const form=(title,fields,cb)=>openDialog(title,'<form id="entryForm" class="form-grid">'+fields+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
 function bindForm(fn){document.getElementById('entryForm').addEventListener('submit',e=>{e.preventDefault();let f=Object.fromEntries(new FormData(e.target));fn(f)})}
