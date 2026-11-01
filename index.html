@@ -81,4 +81,191 @@ function exportData(){const a=document.createElement('a'),b=new Blob([JSON.strin
 function resetDemo(){if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));save();render()}}
 document.getElementById('date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});render();
 </script>
+
+<!-- jrs-auth-gate-v1: local demo access only, not server-side authorization -->
+<style>
+body:not(.jrs-unlocked)>.app{display:none!important}
+body.jrs-unlocked #jrs-auth{display:none!important}
+#jrs-auth{position:fixed;inset:0;min-height:100vh;z-index:10000;background:#0d1014;color:#f3f5f7;display:grid;grid-template-columns:1.05fr 1fr;font-family:"DM Sans",sans-serif;overflow:auto}
+#jrs-auth *{box-sizing:border-box}
+#jrs-auth .auth-feature{padding:clamp(35px,7vw,90px);min-height:100vh;display:flex;flex-direction:column;background:radial-gradient(circle at 35% 72%,#3d3919 0,#21241c 30%,#11171b 72%);border-right:1px solid #343d3d;position:relative;overflow:hidden}
+#jrs-auth .auth-feature:after{content:"";position:absolute;right:-170px;bottom:-125px;width:570px;height:570px;border:1px solid #ffcc0047;transform:rotate(45deg);box-shadow:0 0 0 50px #ffcc0007,0 0 0 110px #ffcc0006;pointer-events:none}
+#jrs-auth .auth-brand{display:flex;align-items:center;gap:14px;z-index:1}
+#jrs-auth .auth-mark{height:51px;width:62px;display:grid;place-items:center;border-radius:9px;border:2px solid #ffcd00;color:#ffcd00;background:#2d2912;font:800 19px "Space Grotesk"}
+#jrs-auth .auth-brand-name{font:800 19px "Space Grotesk";letter-spacing:.3px}
+#jrs-auth .auth-brand-name span{color:#ffcd00}
+#jrs-auth .auth-brand small{font-size:9px;letter-spacing:2px;color:#9ba6a6}
+#jrs-auth .auth-impact{position:relative;z-index:1;max-width:570px;margin:auto 0}
+#jrs-auth .auth-kicker{font-size:11px;letter-spacing:3px;color:#ffcd00;font-weight:800}
+#jrs-auth .auth-impact h1{font:700 clamp(40px,4.6vw,74px)/1.03 "Space Grotesk";margin:20px 0 23px;letter-spacing:-2px}
+#jrs-auth .auth-impact h1 span{color:#ffcd00}
+#jrs-auth .auth-impact p{font-size:16px;max-width:460px;color:#aeb8bf;line-height:1.7}
+#jrs-auth .auth-points{margin-top:38px;display:flex;gap:10px;flex-wrap:wrap}
+#jrs-auth .auth-points span{font-size:11px;padding:9px 12px;border:1px solid #4a4f44;background:#252820b0;border-radius:7px;color:#cbd1cb}
+#jrs-auth .auth-feature-foot{z-index:1;font-size:12px;color:#91a09e}
+#jrs-auth .auth-side{display:flex;justify-content:center;align-items:center;padding:35px 20px;min-width:0}
+#jrs-auth .auth-form-wrap{width:min(440px,100%)}
+#jrs-auth .auth-topline{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#ffcd00;font-weight:800}
+#jrs-auth h2{font:700 34px "Space Grotesk";letter-spacing:-.6px;margin:14px 0 10px}
+#jrs-auth .auth-desc{color:#9faab8;margin:0 0 29px;font-size:14px;line-height:1.6}
+#jrs-auth .auth-demo-tag{display:inline-flex;align-items:center;gap:7px;background:#382f19;border:1px solid #69541d;color:#ffd25b;border-radius:7px;font-weight:800;font-size:10px;padding:8px 11px;letter-spacing:1px}
+#jrs-auth label{display:block;font-weight:700;font-size:12px;color:#cbd4de;margin:17px 0 8px}
+#jrs-auth input{display:block;width:100%;background:#171e26!important;color:white!important;border:1px solid #3c4651;border-radius:9px;height:48px;font-size:14px;padding:11px 13px}
+#jrs-auth input:focus{outline:2px solid #ffcd00;border-color:#ffcd00}
+#jrs-auth .password-line{display:flex;gap:9px;align-items:stretch}
+#jrs-auth .password-line input{flex:1;min-width:0}
+#jrs-auth .auth-eye{border:1px solid #404b57;color:#d8e0e7;background:#242c36;padding:0 13px;border-radius:8px;font-size:12px}
+#jrs-auth .auth-submit{border:0;border-radius:9px;background:#ffcd00;color:#11181a;font-weight:800;min-height:51px;width:100%;margin-top:25px;letter-spacing:.2px;font-size:14px}
+#jrs-auth .auth-submit:hover{background:#ffe05c}
+#jrs-auth .auth-submit:disabled{opacity:.65;cursor:wait}
+#jrs-auth .auth-message{min-height:18px;color:#ff9999;font-size:12px;margin-top:12px}
+#jrs-auth .auth-hint{font-size:12px;line-height:1.65;color:#8996a5;border-top:1px solid #2d343d;margin-top:22px;padding-top:17px}
+#jrs-auth .auth-secure{margin-top:17px;padding:12px;border:1px solid #62531f;border-radius:8px;background:#2d291b;color:#dcc67f;font-size:11px;line-height:1.5}
+#jrs-auth .auth-account{font-size:12px;color:#a2afbc;line-height:1.7;margin:0 0 5px}
+#jrs-auth .auth-logged{font-size:11px;color:#adb7c2;display:flex;align-items:center;gap:7px;max-width:220px;overflow:hidden}
+#jrs-auth .auth-login-top{position:relative}
+@media(max-width:850px){#jrs-auth{display:block}#jrs-auth .auth-feature{min-height:unset;padding:22px 25px 21px;border-right:0;border-bottom:1px solid #343d3d}#jrs-auth .auth-impact,#jrs-auth .auth-feature-foot{display:none}#jrs-auth .auth-side{padding:36px 20px 60px;min-height:calc(100vh - 105px)}#jrs-auth h2{font-size:29px}#jrs-auth .auth-brand-name{font-size:17px}}
+</style>
+<div id="jrs-auth" role="region" aria-label="Acesso ao JRS SMART RENTAL">
+  <div class="auth-feature">
+    <div class="auth-brand"><div class="auth-mark">JRS</div><div><div class="auth-brand-name">JRS <span>SMART</span></div><small>RENTAL PLATFORM</small></div></div>
+    <div class="auth-impact"><div class="auth-kicker">CONTROLE · PRECISÃO · TECNOLOGIA</div><h1>O controle da sua operação <span>começa aqui.</span></h1><p>Uma nova experiência em gestão de equipamentos, locações e operações industriais.</p><div class="auth-points"><span>▣ Gestão da frota</span><span>◈ Inteligência operacional</span><span>▤ Controle comercial</span></div></div>
+    <div class="auth-feature-foot">JRS GUINDASTES · FORÇA E COMPROMISSO EM CADA OPERAÇÃO</div>
+  </div>
+  <div class="auth-side"><div class="auth-form-wrap">
+    <span class="auth-demo-tag">● ACESSO DEMONSTRATIVO</span>
+    <div class="auth-login-top">
+      <div class="auth-topline" id="jrs-auth-mode">CARREGANDO</div>
+      <h2 id="jrs-auth-title">Bem-vindo à JRS.</h2>
+      <p class="auth-desc" id="jrs-auth-description">Preparando sua área de acesso...</p>
+    </div>
+    <form id="jrs-auth-form" autocomplete="on" style="display:none">
+      <div id="jrs-auth-name-box" style="display:none"><label for="jrs-auth-name">Nome do administrador</label><input id="jrs-auth-name" name="name" maxlength="100" autocomplete="name" placeholder="Seu nome"></div>
+      <label for="jrs-auth-email">E-mail do administrador</label><input type="email" required id="jrs-auth-email" name="email" maxlength="160" autocomplete="username" placeholder="seuemail@empresa.com">
+      <label for="jrs-auth-password">Senha</label><div class="password-line"><input type="password" minlength="10" required id="jrs-auth-password" name="password" autocomplete="current-password" placeholder="Digite sua senha"><button type="button" class="auth-eye" id="jrs-auth-toggle" aria-label="Mostrar senha">Mostrar</button></div>
+      <div id="jrs-auth-confirm-box" style="display:none"><label for="jrs-auth-confirm">Confirme sua senha</label><input type="password" id="jrs-auth-confirm" name="confirm" autocomplete="new-password" placeholder="Repita sua senha"></div>
+      <button type="submit" class="auth-submit" id="jrs-auth-submit">ENTRAR NO PAINEL →</button>
+      <div class="auth-message" role="alert" id="jrs-auth-error"></div>
+    </form>
+    <p class="auth-hint" id="jrs-auth-hint"></p>
+    <div class="auth-secure"><strong>Ambiente de demonstração.</strong> O administrador é registrado apenas neste navegador. Esta tela não substitui autenticação no servidor nem controla acesso aos dados corporativos. Não use credenciais reais.</div>
+  </div></div>
+</div>
+<script>
+(function () {
+"use strict";
+const ADMIN_KEY = "jrs_demo_admin_v1";
+const SESSION_KEY = "jrs_demo_admin_session_v1";
+const gate = document.getElementById("jrs-auth");
+const loginForm = document.getElementById("jrs-auth-form");
+const nameBox = document.getElementById("jrs-auth-name-box");
+const confirmBox = document.getElementById("jrs-auth-confirm-box");
+const errorBox = document.getElementById("jrs-auth-error");
+let isFirstSetup = false;
+let busy = false;
+function getAdmin(){
+  try { const a = JSON.parse(localStorage.getItem(ADMIN_KEY)); return a && a.hash && a.salt && a.email ? a : null; } catch(e){ return null; }
+}
+function setError(s){ errorBox.textContent=s||""; }
+function bytesToHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
+function hexToBytes(s){if(typeof s!=="string"||s.length%2)throw new Error("Formato de dados inválido");return new Uint8Array(s.match(/../g).map(x=>parseInt(x,16)));}
+async function derivePassword(pass,salt,iters){
+  if(!window.crypto||!window.crypto.subtle)throw new Error("Este navegador não permite criptografia segura.");
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),{name:"PBKDF2"},false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:hexToBytes(salt),iterations:iters,hash:"SHA-256"},key,256);
+  return bytesToHex(new Uint8Array(bits));
+}
+function sessionValue(a){return a.email+"|"+a.hash;}
+function viewMode(){
+  const admin=getAdmin();
+  isFirstSetup=!admin;
+  setError("");
+  document.getElementById("jrs-auth-mode").textContent=isFirstSetup?"PRIMEIRO ACESSO · ADMINISTRADOR":"PAINEL ADMINISTRATIVO";
+  document.getElementById("jrs-auth-title").textContent=isFirstSetup?"Crie sua conta administradora.":"Acesse sua conta.";
+  document.getElementById("jrs-auth-description").textContent=isFirstSetup?"Defina o responsável inicial pelo painel JRS SMART RENTAL nesta demonstração.":"Digite o e-mail e a senha cadastrados neste navegador.";
+  document.getElementById("jrs-auth-submit").textContent=isFirstSetup?"CRIAR ADMINISTRADOR →":"ENTRAR NO PAINEL →";
+  document.getElementById("jrs-auth-hint").textContent=isFirstSetup?"A senha precisa ter no mínimo 10 caracteres, incluindo letras e números. Não existe senha padrão.":"O cadastro é local a este navegador. Para autenticação multiusuário será necessário conectar um serviço de identidade com banco de dados.";
+  nameBox.style.display=isFirstSetup?"block":"none";
+  confirmBox.style.display=isFirstSetup?"block":"none";
+  document.getElementById("jrs-auth-name").required=isFirstSetup;
+  document.getElementById("jrs-auth-confirm").required=isFirstSetup;
+  document.getElementById("jrs-auth-password").autocomplete=isFirstSetup?"new-password":"current-password";
+  if(admin)document.getElementById("jrs-auth-email").value=admin.email;
+  loginForm.reset();
+  if(admin)document.getElementById("jrs-auth-email").value=admin.email;
+  loginForm.style.display="block";
+}
+function unlock(a){
+  document.body.classList.add("jrs-unlocked");
+  sessionStorage.setItem(SESSION_KEY,sessionValue(a));
+  gate.setAttribute("aria-hidden","true");
+  const right=document.querySelector(".top .right");
+  let bar=document.getElementById("jrs-auth-userbar");
+  if(!bar){
+    bar=document.createElement("span"); bar.id="jrs-auth-userbar";bar.style.cssText="display:flex;align-items:center;gap:9px;";
+    right.appendChild(bar);
+  }
+  bar.innerHTML='<span class="auth-logged">◉ <span id="jrs-auth-usertext"></span></span><button class="btn tiny" id="jrs-logout-btn" title="Encerrar acesso ao painel">Sair</button>';
+  document.getElementById("jrs-auth-usertext").textContent=a.name||"Administrador";
+  document.getElementById("jrs-logout-btn").addEventListener("click",lock);
+}
+function lock(){
+  sessionStorage.removeItem(SESSION_KEY);
+  document.body.classList.remove("jrs-unlocked");
+  gate.removeAttribute("aria-hidden");
+  const bar=document.getElementById("jrs-auth-userbar");
+  if(bar)bar.remove();
+  try{closeDialog()}catch(e){}
+  viewMode();
+}
+async function submitCredentials(e){
+  e.preventDefault();if(busy)return;
+  busy=true;
+  const btn=document.getElementById("jrs-auth-submit");btn.disabled=true;setError("");
+  try{
+    const email=document.getElementById("jrs-auth-email").value.trim().toLowerCase();
+    const pass=document.getElementById("jrs-auth-password").value;
+    if(isFirstSetup){
+      if(getAdmin())throw new Error("Um administrador já foi cadastrado neste navegador. Faça login.");
+      const name=document.getElementById("jrs-auth-name").value.trim();
+      const confirm=document.getElementById("jrs-auth-confirm").value;
+      if(name.length<2)throw new Error("Informe o nome completo do administrador.");
+      if(pass.length<10||!/[\p{L}]/u.test(pass)||!/\d/.test(pass))throw new Error("Use ao menos 10 caracteres, incluindo letras e números.");
+      if(pass!==confirm)throw new Error("As duas senhas não coincidem.");
+      const salt=bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
+      const iterations=210000;
+      const hash=await derivePassword(pass,salt,iterations);
+      const admin={role:"Administrador",name,email,hash,salt,iterations,createdAt:new Date().toISOString()};
+      localStorage.setItem(ADMIN_KEY,JSON.stringify(admin));
+      unlock(admin);
+    }else{
+      const a=getAdmin();
+      if(!a)throw new Error("Conta não encontrada neste navegador.");
+      if(email!==a.email)throw new Error("E-mail ou senha incorretos.");
+      const hash=await derivePassword(pass,a.salt,a.iterations||210000);
+      if(hash!==a.hash)throw new Error("E-mail ou senha incorretos.");
+      unlock(a);
+    }
+    loginForm.reset();
+  }catch(err){setError(err.message||"Não foi possível concluir. Tente novamente.")}
+  finally{btn.disabled=false;busy=false;}
+}
+function togglePassword(){
+  const inp=document.getElementById("jrs-auth-password");
+  const reveal=inp.type==="password";
+  inp.type=reveal?"text":"password";
+  this.textContent=reveal?"Ocultar":"Mostrar";
+  this.setAttribute("aria-label",reveal?"Ocultar senha":"Mostrar senha");
+}
+loginForm.addEventListener("submit",submitCredentials);
+document.getElementById("jrs-auth-toggle").addEventListener("click",togglePassword);
+const current=getAdmin();
+if(current && sessionStorage.getItem(SESSION_KEY)===sessionValue(current)){
+  unlock(current);
+}else{
+  sessionStorage.removeItem(SESSION_KEY);
+  viewMode();
+}
+})();
+</script>
 </body></html>
