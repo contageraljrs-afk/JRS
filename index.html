@@ -88,7 +88,7 @@ function accesses(){
   if(!canView('accesses'))return '<div class="card">Acesso não autorizado.</div>';
   const access=window.JRSAccess,people=access.list(),admin=access.root();
   const active=people.filter(p=>p.active).length;
-  const tr=(u,root)=>'<tr><td><b>'+esc(u.name)+'</b><br><span class="muted">'+esc(u.email)+'</span></td><td><span class="tag">'+esc(u.role)+'</span></td><td>'+status(u.active?'Ativo':'Bloqueado')+'</td><td>'+(root?'<small class="muted">Administrador principal</small>':'<div class="actions"><button class="btn tiny" onclick="openMemberForm(\''+esc(u.id)+'\')">Editar</button><button class="btn tiny" onclick="memberPassword(\''+esc(u.id)+'\')">Nova senha</button><button class="btn tiny" onclick="toggleMember(\''+esc(u.id)+'\')">'+(u.active?'Bloquear':'Ativar')+'</button></div>')+'</td></tr>';
+  const tr=(u,root)=>'<tr><td><b>'+esc(u.name)+'</b><br><span class="muted">'+esc(u.email)+'</span></td><td><span class="tag">'+esc(u.role)+'</span></td><td>'+'<span class="status '+(u.active?'available':'inactive')+'">'+(u.active?'Ativo':'Bloqueado')+'</span>'+'</td><td>'+(root?'<small class="muted">Administrador principal</small>':'<div class="actions"><button class="btn tiny" onclick="openMemberForm(\''+esc(u.id)+'\')">Editar</button><button class="btn tiny" onclick="memberPassword(\''+esc(u.id)+'\')">Nova senha</button><button class="btn tiny" onclick="toggleMember(\''+esc(u.id)+'\')">'+(u.active?'Bloquear':'Ativar')+'</button></div>')+'</td></tr>';
   return header('Acessos e equipe','Cadastre colaboradores e defina o que cada pessoa pode visualizar ou alterar.','Novo funcionário',"openMemberForm()")
   +'<div class="stats"><div class="card"><small>Contas cadastradas</small><div class="bigmetric">'+(people.length+1)+'</div></div><div class="card"><small>Funcionários ativos</small><div class="bigmetric">'+active+'</div></div><div class="card"><small>Administradores</small><div class="bigmetric">'+(people.filter(p=>p.role==='Administrador'&&p.active).length+1)+'</div></div></div>'
   +'<div class="note">Acessos demonstrativos: cadastros e senhas são armazenados neste navegador. Funcionários de outros dispositivos não conseguem entrar com essas contas. Permissões de tela não constituem proteção segura de dados. Antes do uso real, é obrigatório configurar autenticação e autorização no servidor.</div>'
@@ -327,7 +327,7 @@ document.getElementById("jrs-auth-name").required=create;
 confirmInput.required=create;
 emailInput.readOnly=false;
 emailInput.value="";
-pwdInput.value="";confirmInput.value="";
+pwdInput.value="";confirmInput.value="";pwdInput.type="password";document.getElementById("jrs-auth-toggle").textContent="Mostrar";
 pwdInput.autocomplete=create?"new-password":"current-password";
 document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Acesso local a este navegador. Funcionários de outros dispositivos precisam de autenticação com servidor.";
 form.style.display="block";
