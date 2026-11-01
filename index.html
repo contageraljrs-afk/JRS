@@ -45,6 +45,8 @@
 #vehicleForm .field input,#vehicleForm .field select,#vehicleForm .field textarea{width:100%}
 #vehicleForm textarea{min-height:92px}
 </style>
+<script src="./frota-protegida.js"></script>
+<style id="fleet-activation-css">.fleet-activation{margin-bottom:18px;border:1px solid #a17c24;background:#2d291b}.fleet-activation h3{color:#ffd34f;font-size:18px;margin-bottom:8px}.fleet-activation p{max-width:650px}</style>
 </head>
 <body>
 <div class="app">
@@ -93,6 +95,7 @@ let max=Math.max(1,...byCat.map(x=>x.n));
 return header('Visão geral','Acompanhe os principais indicadores da operação JRS.','Novo orçamento',"openQuote()")+'<div class="welcome"><span class="eyebrow">CENTRAL DE CONTROLE</span><h2>Tecnologia e força para grandes operações.</h2><p>Uma visão integrada de frota, solicitações, reservas e resultados.</p></div><div class="stats">'+stat.map(x=>'<div class="card stat"><span class="lab">'+x[0]+'</span><div class="iconbox">'+x[2]+'</div><div class="num">'+x[1]+'</div><small>'+x[3]+'</small></div>').join('')+'</div><div class="duo"><div class="card"><div class="card-head"><div><h3>Distribuição da frota</h3><small>Por categoria de equipamento</small></div><span class="tag">Dados ilustrativos</span></div><div class="bargraph">'+byCat.map(x=>'<div class="barwrap"><div class="bar" style="height:'+Math.max(4,x.n/max*160)+'px"></div><small>'+x.c.split(' ')[0]+'</small></div>').join('')+'</div></div><div class="card"><div class="card-head"><div><h3>Pipeline comercial</h3><small>Solicitações por etapa</small></div></div>'+['Novo','Em análise','Proposta enviada','Em negociação','Aprovado'].map(s=>{let n=db.quotes.filter(q=>q.status===s).length;return '<div class="progress-item"><div class="progress-label"><span>'+s+'</span><b>'+n+'</b></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.round(n/Math.max(1,db.quotes.length)*100))+'%"></div></div></div>'}).join('')+'</div></div><div class="card-head"><h3>Últimas solicitações</h3><button class="btn tiny" onclick="go(\'quotes\')">Ver todas</button></div>'+table(['Protocolo','Cliente','Equipamento','Data','Status'],db.quotes.slice(-5).reverse().map(q=>'<tr><td><strong>'+esc(q.id)+'</strong></td><td>'+esc(q.client)+'</td><td>'+esc(q.equipment)+'</td><td>'+fmt(q.date)+'</td><td>'+status(q.status)+'</td></tr>'))}
 
 /* jrs-vehicle-registry-module-v1: os registros confidenciais não são distribuídos no código público */
+const fleetUnlockFlag='jrs_fleet_bundle_20261029_unlocked';
 const vehicleStatusOptions=['Não verificado','Em atividade','Fora de operação','Vendido / baixado','Em manutenção'];
 const vehicleKeys=[['plate','Placa'],['makeModel','Marca / modelo'],['manufactureYear','Ano de fabricação'],['modelYear','Ano modelo'],['species','Espécie'],['color','Cor'],['fuel','Combustível'],['origin','Procedência'],['city','Cidade'],['state','UF'],['renavam','RENAVAM'],['chassis','Chassi'],['engine','Nº do motor']];
 const vehicleSecretKeys=new Set(['renavam','chassis','engine']);
@@ -103,11 +106,61 @@ function vehicles(){
  const canModify=canEdit('vehicles');
  return header('Veículos e frota','Cadastro patrimonial e histórico de veículos, separado dos equipamentos liberados para locação.',canModify?'Novo veículo':'', 'openVehicleForm()')
  +'<div class="stats"><div class="card"><small>Registros de veículos</small><div class="bigmetric">'+all.length+'</div><small>Histórico patrimonial</small></div><div class="card"><small>Atividade confirmada manualmente</small><div class="bigmetric">'+confirmed+'</div><small>Não representa disponibilidade para locação</small></div><div class="card"><small>Situação não verificada</small><div class="bigmetric">'+unverified+'</div><small>Confirmar com a equipe da JRS</small></div></div>'
+ +(window.JRS_FLEET_BUNDLE&&!localStorage.getItem(fleetUnlockFlag)?'<div class="card fleet-activation"><div class="flex" style="justify-content:space-between;gap:15px"><div><h3>29 veículos prontos para cadastrar</h3><p class="muted">Os dados estão no aplicativo em pacote criptografado. Ative uma única vez para preencher a frota com placas, modelos, RENAVAM, chassis e informações do documento, sem importar arquivos.</p></div><button class="btn primary" onclick="activateFleet()">Ativar 29 veículos</button></div></div>':'')
  +'<div class="note"><b>Dados internos:</b> este módulo recebe informações de documentos confidenciais. Não publica RENAVAM, chassi ou motor no GitHub. O ambiente ainda é demonstrativo, sem proteção de servidor; use somente no seu dispositivo confiável. O relatório é histórico e não comprova posse atual ou disponibilidade.</div>'
  +(canModify?'<div class="card" style="margin-bottom:18px"><div class="card-head"><div><h3>Importação de registros</h3><small>Importe o arquivo JSON privado preparado a partir do relatório Assertiva Veículos.</small></div></div><div class="actions"><input id="vehicle-json-input" aria-label="Importar arquivo JSON de veículos" type="file" accept=".json,application/json" style="display:none" onchange="importVehicles(this)"><button class="btn primary" onclick="document.getElementById(\'vehicle-json-input\').click()">↑ Importar cadastro JSON</button><button class="btn" onclick="exportVehicles()">↓ Exportar cadastro</button></div><small>Registros já existentes com a mesma placa são preservados, sem duplicatas.</small></div>':'')
  +'<div class="filters"><input class="search" placeholder="Buscar placa, modelo, cidade ou ano..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshVehicles()"><select onchange="filterCategory=this.value;refreshVehicles()"><option value="">Todas as espécies</option>'+['CARGA','TRACAO','PASSAGEIRO'].map(t=>'<option '+(filterCategory===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
  +'<div id="vehiclesResults">'+renderVehiclesList()+'</div>';
 }
+
+/* Importação automática de 29 veículos mediante chave de decriptação mantida fora do código público. */
+async function activateFleet(){
+ if(!requireEdit('vehicles'))return;
+ const payload=window.JRS_FLEET_BUNDLE;
+ if(!payload||payload.count!==29)return alert('Não foi possível carregar o pacote de veículos. Atualize a página.');
+ openDialog('Ativar 29 veículos da JRS',
+ '<div class="note">Os cadastros já estão incluídos no aplicativo, protegidos por criptografia. Informe o código de ativação fornecido ao administrador da JRS. Este código não será armazenado.</div>'
+ +'<form id="fleetActivateForm" class="form-grid"><div class="field span2"><label for="fleetSecret">Código privado da frota</label><input id="fleetSecret" type="password" autocomplete="off" required placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" /></div>'
+ +'<div class="span2 actions"><button class="btn primary" type="submit">Ativar cadastro completo</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div><div class="span2" id="fleetActivationError" role="alert" style="color:#ffaaaa;font-size:12px"></div></form>');
+ document.getElementById('fleetActivateForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true;
+  const error=document.getElementById('fleetActivationError');
+  error.textContent='';
+  try{
+   if(!window.crypto?.subtle||typeof DecompressionStream==='undefined')throw Error('Este navegador não oferece os recursos de segurança necessários. Atualize o navegador.');
+   const entered=document.getElementById('fleetSecret').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+   if(entered.length!==25)throw Error('Código de ativação inválido. Verifique os 25 caracteres.');
+   const secret=entered.match(/.{5}/g).join('-');
+   const asBytes=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0));
+   const pass=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'PBKDF2'},false,['deriveKey']);
+   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:asBytes(payload.salt),iterations:payload.rounds,hash:'SHA-256'},pass,{name:'AES-GCM',length:256},false,['decrypt']);
+   const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv:asBytes(payload.iv),additionalData:new TextEncoder().encode('jrs-frota-v1')},key,asBytes(payload.ciphertext));
+   const uncompressed=new Blob([plaintext]).stream().pipeThrough(new DecompressionStream('gzip'));
+   const file=JSON.parse(await new Response(uncompressed).text());
+   if(file.format!=='jrs-vehicle-registry-v1'||!Array.isArray(file.vehicles)||file.vehicles.length!==29)throw Error('Arquivo descriptografado não corresponde ao cadastro esperado.');
+   const existing=new Set(db.vehicles.map(v=>v.plate)),newVehicles=[];
+   for(const raw of file.vehicles){
+    const data=vehicleRecord(raw);
+    if(!existing.has(data.plate)){
+     existing.add(data.plate);
+     newVehicles.push({...data,id:'VEI-'+data.plate,source:String(raw.source||file.sourceName||'Relatório Assertiva Veículos'),sourceDate:String(raw.sourceDate||file.extractedAtSource||'').slice(0,20),sourcePage:raw.sourcePage||null,createdAt:new Date().toISOString()});
+    }
+   }
+   db.vehicles.push(...newVehicles);
+   save();
+   localStorage.setItem(fleetUnlockFlag,new Date().toISOString());
+   document.getElementById('fleetSecret').value='';
+   closeDialog();
+   go('vehicles');
+   alert('Cadastro concluído: '+newVehicles.length+' veículos adicionados e '+(29-newVehicles.length)+' já existentes. Confira os registros em Veículos e Frota.');
+  }catch(ex){
+   error.textContent=ex.name==='OperationError'?'Código incorreto. Tente novamente.':(ex.message||'Não foi possível ativar o cadastro.');
+  }finally{btn.disabled=false}
+ })
+}
+
 function renderVehiclesList(){
  const data=(db.vehicles||[]).filter(v=>(!filterCategory||v.species===filterCategory)&&(!filterText||[v.plate,v.makeModel,v.manufactureYear,v.modelYear,v.city,v.species,v.color].join(' ').toLowerCase().includes(filterText.toLowerCase())));
  return table(['Placa','Marca / modelo','Fab. / Modelo','Espécie','Cor','Situação','Detalhes'],data.map(v=>
