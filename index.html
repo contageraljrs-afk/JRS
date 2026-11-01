@@ -41,7 +41,11 @@
 .contract-details summary{cursor:pointer;color:#9dadbe;font-size:11px;padding:7px 0}
 .contract-details textarea{display:block;width:100%;background:#11171d;border:1px solid #3b4552;border-radius:7px;color:#edf2f6;padding:12px;resize:vertical;line-height:1.5;min-height:100px;margin-top:8px}
 @media(max-width:680px){.contract-clause-top{align-items:flex-start;flex-wrap:wrap}}
-</style></head>
+</style><style id="jrs-vehicles-style">
+#vehicleForm .field input,#vehicleForm .field select,#vehicleForm .field textarea{width:100%}
+#vehicleForm textarea{min-height:92px}
+</style>
+</head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -65,8 +69,9 @@ finance:[{id:'FN-001',description:'Locação de exemplo 01',type:'Receita',value
 let db;
 try{db=JSON.parse(localStorage.getItem(STORE))||structuredClone(seed)}catch(e){db=JSON.parse(JSON.stringify(seed))}
 db.proposals=Array.isArray(db.proposals)?db.proposals:[];
+db.vehicles=Array.isArray(db.vehicles)?db.vehicles:[];
 let view='dashboard',filterText='',filterCategory='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
@@ -80,12 +85,107 @@ const header=(title,desc,button,action)=>'<div class="headline"><div><span class
 const table=(cols,rows)=>'<div class="card tablewrap"><table class="table"><thead><tr>'+cols.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+ (rows.length?rows.join(''):'<tr><td colspan="'+cols.length+'" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div>';
 function renderNav(){document.getElementById('nav').innerHTML=sections.map(s=>{const items=s[1].filter(i=>canView(i[0]));return items.length?'<div class="section-label">'+s[0]+'</div>'+items.map(i=>'<button class="nav-item '+(view===i[0]?'active':'')+'" onclick="go(\''+i[0]+'\')"><span class="ico">'+i[1]+'</span>'+i[2]+'</button>').join(''):''}).join('')}
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
+function render(){if(!canView(view))view='dashboard';renderNav();const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
 function dash(){let income=db.finance.filter(f=>f.type==='Receita').reduce((t,f)=>t+Number(f.value),0),op=db.equipment.filter(e=>e.status==='Em operação').length,free=db.equipment.filter(e=>e.status==='Disponível').length,open=db.quotes.filter(q=>!['Concluído','Perdido'].includes(q.status)).length;
 let stat=[['Equipamentos disponíveis',free,'⚙','Frota cadastrada'],['Equipamentos em operação',op,'↗','Uso demonstrativo'],['Locações confirmadas',db.bookings.filter(b=>b.status==='Confirmada').length,'▦','Reservas ativas'],['Orçamentos em andamento',open,'▤','Funil comercial'],['Receitas lançadas',money(income),'◈','Valores de demonstração'],['Taxa de utilização',db.equipment.length?Math.round(100*op/db.equipment.length)+'%':'0%','▥','Em operação / frota']];
 let byCat=cats.map(c=>({c,n:db.equipment.filter(e=>e.category===c).length}));
 let max=Math.max(1,...byCat.map(x=>x.n));
 return header('Visão geral','Acompanhe os principais indicadores da operação JRS.','Novo orçamento',"openQuote()")+'<div class="welcome"><span class="eyebrow">CENTRAL DE CONTROLE</span><h2>Tecnologia e força para grandes operações.</h2><p>Uma visão integrada de frota, solicitações, reservas e resultados.</p></div><div class="stats">'+stat.map(x=>'<div class="card stat"><span class="lab">'+x[0]+'</span><div class="iconbox">'+x[2]+'</div><div class="num">'+x[1]+'</div><small>'+x[3]+'</small></div>').join('')+'</div><div class="duo"><div class="card"><div class="card-head"><div><h3>Distribuição da frota</h3><small>Por categoria de equipamento</small></div><span class="tag">Dados ilustrativos</span></div><div class="bargraph">'+byCat.map(x=>'<div class="barwrap"><div class="bar" style="height:'+Math.max(4,x.n/max*160)+'px"></div><small>'+x.c.split(' ')[0]+'</small></div>').join('')+'</div></div><div class="card"><div class="card-head"><div><h3>Pipeline comercial</h3><small>Solicitações por etapa</small></div></div>'+['Novo','Em análise','Proposta enviada','Em negociação','Aprovado'].map(s=>{let n=db.quotes.filter(q=>q.status===s).length;return '<div class="progress-item"><div class="progress-label"><span>'+s+'</span><b>'+n+'</b></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.round(n/Math.max(1,db.quotes.length)*100))+'%"></div></div></div>'}).join('')+'</div></div><div class="card-head"><h3>Últimas solicitações</h3><button class="btn tiny" onclick="go(\'quotes\')">Ver todas</button></div>'+table(['Protocolo','Cliente','Equipamento','Data','Status'],db.quotes.slice(-5).reverse().map(q=>'<tr><td><strong>'+esc(q.id)+'</strong></td><td>'+esc(q.client)+'</td><td>'+esc(q.equipment)+'</td><td>'+fmt(q.date)+'</td><td>'+status(q.status)+'</td></tr>'))}
+
+/* jrs-vehicle-registry-module-v1: os registros confidenciais não são distribuídos no código público */
+const vehicleStatusOptions=['Não verificado','Em atividade','Fora de operação','Vendido / baixado','Em manutenção'];
+const vehicleKeys=[['plate','Placa'],['makeModel','Marca / modelo'],['manufactureYear','Ano de fabricação'],['modelYear','Ano modelo'],['species','Espécie'],['color','Cor'],['fuel','Combustível'],['origin','Procedência'],['city','Cidade'],['state','UF'],['renavam','RENAVAM'],['chassis','Chassi'],['engine','Nº do motor']];
+const vehicleSecretKeys=new Set(['renavam','chassis','engine']);
+const vehicleMasked=(v)=>{const t=String(v||'');return t.length>4?'•••• '+t.slice(-4):(t?'••••':'Não informado')};
+function vehicles(){
+ if(!canView('vehicles'))return '<div class="card">Acesso restrito. Solicite permissão ao administrador.</div>';
+ const all=db.vehicles||[],confirmed=all.filter(v=>v.fleetStatus==='Em atividade').length,unverified=all.filter(v=>v.fleetStatus==='Não verificado').length;
+ const canModify=canEdit('vehicles');
+ return header('Veículos e frota','Cadastro patrimonial e histórico de veículos, separado dos equipamentos liberados para locação.',canModify?'Novo veículo':'', 'openVehicleForm()')
+ +'<div class="stats"><div class="card"><small>Registros de veículos</small><div class="bigmetric">'+all.length+'</div><small>Histórico patrimonial</small></div><div class="card"><small>Atividade confirmada manualmente</small><div class="bigmetric">'+confirmed+'</div><small>Não representa disponibilidade para locação</small></div><div class="card"><small>Situação não verificada</small><div class="bigmetric">'+unverified+'</div><small>Confirmar com a equipe da JRS</small></div></div>'
+ +'<div class="note"><b>Dados internos:</b> este módulo recebe informações de documentos confidenciais. Não publica RENAVAM, chassi ou motor no GitHub. O ambiente ainda é demonstrativo, sem proteção de servidor; use somente no seu dispositivo confiável. O relatório é histórico e não comprova posse atual ou disponibilidade.</div>'
+ +(canModify?'<div class="card" style="margin-bottom:18px"><div class="card-head"><div><h3>Importação de registros</h3><small>Importe o arquivo JSON privado preparado a partir do relatório Assertiva Veículos.</small></div></div><div class="actions"><input id="vehicle-json-input" aria-label="Importar arquivo JSON de veículos" type="file" accept=".json,application/json" style="display:none" onchange="importVehicles(this)"><button class="btn primary" onclick="document.getElementById(\'vehicle-json-input\').click()">↑ Importar cadastro JSON</button><button class="btn" onclick="exportVehicles()">↓ Exportar cadastro</button></div><small>Registros já existentes com a mesma placa são preservados, sem duplicatas.</small></div>':'')
+ +'<div class="filters"><input class="search" placeholder="Buscar placa, modelo, cidade ou ano..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshVehicles()"><select onchange="filterCategory=this.value;refreshVehicles()"><option value="">Todas as espécies</option>'+['CARGA','TRACAO','PASSAGEIRO'].map(t=>'<option '+(filterCategory===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+ +'<div id="vehiclesResults">'+renderVehiclesList()+'</div>';
+}
+function renderVehiclesList(){
+ const data=(db.vehicles||[]).filter(v=>(!filterCategory||v.species===filterCategory)&&(!filterText||[v.plate,v.makeModel,v.manufactureYear,v.modelYear,v.city,v.species,v.color].join(' ').toLowerCase().includes(filterText.toLowerCase())));
+ return table(['Placa','Marca / modelo','Fab. / Modelo','Espécie','Cor','Situação','Detalhes'],data.map(v=>
+ '<tr><td><b>'+esc(v.plate)+'</b></td><td>'+esc(v.makeModel||'Não informado')+'</td><td>'+esc(v.manufactureYear||'—')+' / '+esc(v.modelYear||'—')+'</td><td>'+esc(v.species||'—')+'</td><td>'+esc(v.color||'—')+'</td><td><span class="status '+(v.fleetStatus==='Em atividade'?'available':v.fleetStatus==='Não verificado'?'reserved':'inactive')+'">'+esc(v.fleetStatus||'Não verificado')+'</span></td><td><div class="actions"><button class="btn tiny" onclick="viewVehicle(\''+esc(v.id)+'\')">Ver cadastro</button>'+(canEdit('vehicles')?'<button class="btn tiny" onclick="openVehicleForm(\''+esc(v.id)+'\')">Editar</button>':'')+'</div></td></tr>'))
+}
+function refreshVehicles(){const target=document.getElementById('vehiclesResults');if(target)target.innerHTML=renderVehiclesList()}
+function vehicleRecord(f){
+ const result={},plate=String(f.plate||'').trim().toUpperCase().replace(/[\s-]/g,'');
+ if(!/^[A-Z0-9]{7}$/.test(plate))throw Error('A placa deve conter sete letras ou números.');
+ result.plate=plate;
+ for(const k of vehicleKeys.map(x=>x[0]).filter(k=>k!=='plate'))result[k]=String(f[k]||'').trim();
+ if(!result.makeModel)throw Error('Informe a marca e o modelo do veículo.');
+ result.fleetStatus=vehicleStatusOptions.includes(f.fleetStatus)?f.fleetStatus:'Não verificado';
+ result.notes=String(f.notes||'').trim();
+ return result;
+}
+function openVehicleForm(id){
+ if(!requireEdit('vehicles'))return;
+ const v=id?db.vehicles.find(x=>x.id===id):null;
+ if(id&&!v)return alert('Veículo não encontrado.');
+ const sections=vehicleKeys.map(([k,label])=>
+ '<div class="field"><label for="v-'+k+'">'+label+'</label><input id="v-'+k+'" name="'+k+'" '+(k==='plate'||k==='makeModel'?'required':'')+' value="'+esc(v?.[k]||'')+'" /></div>').join('');
+ openDialog(v?'Editar veículo · '+v.plate:'Novo veículo',
+ '<div class="note">Registro interno. Não insira dados de terceiros sem autorização.</div><form id="vehicleForm" class="form-grid">'
+ +sections+'<div class="field"><label for="v-fleetStatus">Situação atual</label><select id="v-fleetStatus" name="fleetStatus">'+vehicleStatusOptions.map(s=>'<option '+((v?.fleetStatus||'Não verificado')===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'
+ +'<div class="field span2"><label for="v-notes">Observações</label><textarea id="v-notes" name="notes">'+esc(v?.notes||'')+'</textarea></div><div class="span2 actions"><button type="submit" class="btn primary">Salvar veículo</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div><div id="vehicle-form-error" role="alert" class="span2" style="color:#ff9999"></div></form>');
+ document.getElementById('vehicleForm').addEventListener('submit',ev=>{
+  ev.preventDefault();
+  try{
+   const data=vehicleRecord(Object.fromEntries(new FormData(ev.target)));
+   if(db.vehicles.some(x=>x.plate===data.plate&&x.id!==id))throw Error('Essa placa já está cadastrada.');
+   if(v)Object.assign(v,data,{updatedAt:new Date().toISOString()});
+   else db.vehicles.push({...data,id:'VEI-'+data.plate,source:'Cadastro manual',sourceDate:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+   save();closeDialog();render();
+  }catch(e){document.getElementById('vehicle-form-error').textContent=e.message||'Erro ao salvar veículo.'}
+ });
+}
+function viewVehicle(id){
+ if(!canView('vehicles'))return;
+ const v=db.vehicles.find(x=>x.id===id);if(!v)return;
+ const rows=vehicleKeys.map(([k,label])=>'<tr><td style="font-weight:700;color:#aab3bf;width:38%">'+label+'</td><td>'+esc(vehicleSecretKeys.has(k)&&!canEdit('vehicles')?vehicleMasked(v[k]):v[k]||'Não informado')+'</td></tr>').join('');
+ openDialog('Cadastro do veículo · '+v.plate,
+ '<div class="note">Dados oriundos de histórico cadastral. Não comprovam propriedade atual nem disponibilidade para locação.</div>'
+ +'<div class="tablewrap"><table class="table"><tbody>'+rows+'<tr><td>Situação</td><td>'+esc(v.fleetStatus||'Não verificado')+'</td></tr><tr><td>Fonte</td><td>'+esc(v.source||'Manual')+'</td></tr><tr><td>Data da consulta</td><td>'+esc(v.sourceDate||'—')+'</td></tr><tr><td>Observações</td><td style="white-space:normal">'+esc(v.notes||'—')+'</td></tr></tbody></table></div>'
+ +(canEdit('vehicles')?'<div class="actions" style="margin-top:19px"><button class="btn primary" onclick="closeDialog();openVehicleForm(\''+esc(id)+'\')">Editar informações</button></div>':''));
+}
+async function importVehicles(input){
+ if(!canEdit('vehicles'))return;
+ const file=input.files&&input.files[0];if(!file)return;
+ try{
+  if(file.size>3*1024*1024)throw Error('Arquivo muito grande para importação.');
+  const content=await file.text(),payload=JSON.parse(content);
+  if(payload.format!=='jrs-vehicle-registry-v1'||!Array.isArray(payload.vehicles))throw Error('Formato de arquivo incompatível. Use o cadastro JSON JRS.');
+  if(payload.vehicles.length>500)throw Error('O arquivo excede o limite de 500 veículos por importação.');
+  let added=0,existing=0;
+  const plates=new Set(db.vehicles.map(v=>v.plate));
+  const additions=[];
+  for(const raw of payload.vehicles){
+   const item=vehicleRecord(raw);
+   if(plates.has(item.plate)){existing++;continue}
+   plates.add(item.plate);
+   additions.push({...item,id:'VEI-'+item.plate,source:String(raw.source||payload.sourceName||'Importação local').slice(0,200),sourceDate:String(raw.sourceDate||payload.extractedAtSource||'').slice(0,20),sourcePage:raw.sourcePage||null,createdAt:new Date().toISOString()});
+   added++;
+  }
+  if(!confirm('Importar '+added+' registro(s) novos de veículos para ESTE navegador? '+existing+' placa(s) já cadastrada(s) serão preservadas.'))return;
+  db.vehicles.push(...additions);save();render();
+  alert('Importação concluída: '+added+' veículos adicionados e '+existing+' já existentes. Este cadastro é local, não sincroniza com outros dispositivos.');
+ }catch(e){alert('Não foi possível importar: '+(e.message||'arquivo inválido'))}
+ finally{input.value=''}
+}
+function exportVehicles(){
+ if(!canEdit('vehicles'))return;
+ if(!confirm('Exportar os dados confidenciais de '+db.vehicles.length+' veículos, incluindo RENAVAM, chassi e motor? Guarde o arquivo em local seguro.'))return;
+ const content=JSON.stringify({format:'jrs-vehicle-registry-v1',exportedAt:new Date().toISOString(),vehicles:db.vehicles},null,2);
+ const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='JRS_cadastro_privado_veiculos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),400);
+}
+
 function equipment(){let list=db.equipment.filter(e=>(!filterText||(e.name+' '+e.category).toLowerCase().includes(filterText.toLowerCase()))&&(!filterCategory||e.category===filterCategory));
 return header('Gestão de equipamentos','Cadastre e organize a frota disponível para locação.','Novo equipamento',"openEquipment()")+'<div class="filters"><input class="search" placeholder="Buscar equipamento..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshEquipment()"><select onchange="filterCategory=this.value;refreshEquipment()"><option value="">Todas as categorias</option>'+cats.map(c=>'<option '+(filterCategory===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div><div id="equipmentResults">'+equipmentItems(list)+'</div>'}
 function refreshEquipment(){let list=db.equipment.filter(e=>(!filterText||(e.name+' '+e.category).toLowerCase().includes(filterText.toLowerCase()))&&(!filterCategory||e.category===filterCategory));document.getElementById('equipmentResults').innerHTML=equipmentItems(list)}
@@ -284,7 +384,7 @@ function openClient(){if(!requireEdit('clients'))return;openDialog('Novo cliente
 function openFinance(){if(!requireEdit('finance'))return;openDialog('Novo lançamento financeiro','<form id="entryForm" class="form-grid">'+field('Descrição','description')+field('Tipo de lançamento','type','text',true,['Receita','Despesa'])+field('Valor (R$)','value','number')+field('Data','date','date')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar lançamento</button></div></form>');bindForm(f=>{db.finance.push({...f,id:uid('FN'),value:Number(f.value)});save();closeDialog();render()})}
 
 /* Gerenciamento de colaboradores - armazenamento local demonstrativo */
-const TEAM_MODULES=[['dashboard','Visão geral'],['equipment','Equipamentos'],['quotes','Orçamentos'],['bookings','Agenda de locações'],['operations','Operações'],['clients','Clientes'],['finance','Financeiro'],['intelligence','JRS Intelligence']];
+const TEAM_MODULES=[['dashboard','Visão geral'],['equipment','Equipamentos'],['vehicles','Veículos e frota'],['quotes','Orçamentos'],['bookings','Agenda de locações'],['operations','Operações'],['clients','Clientes'],['finance','Financeiro'],['intelligence','JRS Intelligence']];
 const TEAM_ROLES=['Básico','Operacional','Comercial','Gestor','Administrador'];
 function accesses(){
   if(!canView('accesses'))return '<div class="card">Acesso não autorizado.</div>';
@@ -464,7 +564,7 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 "use strict";
 const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
 const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30;
-const MODULES=["dashboard","equipment","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
+const MODULES=["dashboard","equipment","vehicles","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
 const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","Administrador"];
 const ROLE_DEFAULTS={
 "Básico":{view:["dashboard","equipment"],edit:[]},
