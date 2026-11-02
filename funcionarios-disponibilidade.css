@@ -1,0 +1,60 @@
+/* JRS GUINDASTES | jrs-staff-and-availability-style-v1 */
+.jrs-employee-title{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:21px}
+.jrs-employee-title h1{margin:5px 0;font-weight:850;letter-spacing:-.9px;color:#24372b;font-size:clamp(24px,3vw,31px)}
+.jrs-employee-title .subtitle{margin:6px 0 0;max-width:600px;line-height:1.55}
+.jrs-employee-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:17px}
+.jrs-employee-metrics>.card{padding:19px 20px!important;border-color:#e5ebe5!important;background:#fff!important;box-shadow:0 6px 24px #20382908}
+.jrs-employee-metrics small{display:block;font-size:11px;font-weight:700;color:#7f9182;line-height:1.4}
+.jrs-employee-metrics b{display:block;font-size:29px;line-height:1.1;letter-spacing:-.8px;margin-top:8px;color:#29402e;font-weight:850}
+.jrs-employee-note{font-size:11px;color:#806c2e;background:#fff9e9;border:1px solid #f2e4b9;border-radius:9px;padding:12px 15px;line-height:1.55;margin-bottom:20px}
+.jrs-employee-panel{background:#fff!important;border-color:#e1e9e0!important;padding:20px!important}
+.jrs-employee-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.jrs-employee-panel-head h3{font-size:17px;color:#28402e;letter-spacing:-.4px;margin:0}
+.jrs-employee-panel-head>span{color:#849387;font-size:11px}
+.jrs-employee-filters{display:flex;gap:12px;margin-bottom:14px}
+.jrs-employee-filters>.search{flex:1}
+.jrs-employee-filters>select{max-width:290px}
+.jrs-employee-list{display:flex;flex-direction:column;gap:0}
+.jrs-employee-row{display:flex;align-items:center;gap:13px;padding:13px 7px;border-bottom:1px solid #ebeee8}
+.jrs-employee-row:last-child{border-bottom:0}
+.jrs-employee-avatar{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:0 0 42px;background:#f2f5ed;color:#567059;border:1px solid #e5ebdf;font-size:19px}
+.jrs-employee-info{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.jrs-employee-info b{color:#293a2b;font-size:13px;overflow-wrap:anywhere}
+.jrs-employee-info small{font-size:11px;color:#819084;line-height:1.45}
+.jrs-employee-observation{font-style:italic}
+.jrs-employee-state{font-size:10px;font-weight:800;border-radius:999px;padding:6px 9px;white-space:nowrap;background:#f4f6f2;border:1px solid #dfe5db;color:#677a68}
+.jrs-employee-state.positive{background:#eef7ec;border-color:#cae4c9;color:#2f8148}
+.jrs-employee-state.away{background:#fff8e2;border-color:#f0e1b3;color:#936d24}
+.jrs-employee-state.negative{background:#fdf0ef;border-color:#efcac6;color:#a54a43}
+.jrs-staff-empty{text-align:center;color:#859489;font-size:13px;padding:28px}
+.jrs-employee-form-intro{background:#f4f8f1;border:1px solid #e4eadf;border-radius:8px;padding:12px;color:#6e806f;font-size:11px;line-height:1.55;margin:0 0 13px}
+#jrsEmployeeError{font-size:11px;color:#b73f38;font-weight:750}
+.jrs-availability-section{background:#fff;border:1px solid #e2eae1;border-radius:13px;padding:18px 20px 14px;box-shadow:0 6px 23px rgba(34,62,40,.07);margin:0 0 16px}
+.jrs-availability-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.jrs-availability-head>div:first-child{min-width:0;flex:1}
+.jrs-availability-eyebrow{color:#9f861e;letter-spacing:1.4px;font-size:9px;font-weight:900}
+.jrs-availability-head h3{margin:3px 0 2px;color:#263c2b;font-size:19px;letter-spacing:-.6px;font-weight:850}
+.jrs-availability-head p{margin:0;color:#859387;font-size:10px;line-height:1.4}
+.jrs-availability-date{display:flex;flex-direction:column;gap:6px;min-width:158px}
+.jrs-availability-date label{font-size:9px;font-weight:900;letter-spacing:1px;color:#7e8d7d}
+.jrs-availability-date input{background:#f7faf6!important;border:1px solid #d6e2d5!important;border-radius:7px!important;padding:7px 10px!important;color:#34503b!important;font-size:12px!important;min-height:34px;max-width:185px}
+.jrs-availability-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.jrs-availability-card{border:1px solid #e1e9dd;border-radius:10px;background:#f9fbf7;padding:13px;min-width:0;display:flex;flex-direction:column;min-height:162px}
+.jrs-availability-card-top{display:flex;align-items:center;gap:10px;padding:0 0 11px;border-bottom:1px solid #e3eadf}
+.jrs-availability-icon{background:#ecf4e8;border-radius:9px;padding:9px;font-size:17px;line-height:1;flex:none}
+.jrs-availability-card-top small{display:block;color:#687c6b;font-size:11px;line-height:1.4;font-weight:800}
+.jrs-availability-card-top strong{display:block;color:#2c7443;font-size:21px;line-height:1.2;letter-spacing:-.3px;margin-top:3px;font-weight:850}
+.jrs-availability-card-top strong span{font-size:10px;font-weight:750;color:#667c67;letter-spacing:0}
+.jrs-available-chips{display:flex;gap:5px;flex-wrap:wrap;align-content:flex-start;align-items:center;padding:10px 0;flex:1}
+.jrs-available-chip{font-weight:750;color:#326542;font-size:10px;line-height:1.4;padding:5px 8px;background:#ebf5ec;border:1px solid #d3e9d6;border-radius:6px;max-width:100%;overflow-wrap:anywhere}
+.jrs-available-more{font-size:10px;font-weight:750;color:#637d64;padding:5px 8px}
+.jrs-availability-empty{font-size:10px;color:#9aaa9d;line-height:1.45;font-style:italic;padding:5px 0}
+.jrs-availability-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;border-top:1px solid #e4ebdf;padding-top:9px;color:#859385;font-size:9px;font-weight:650}
+.jrs-availability-caption{display:flex;align-items:center;gap:9px;padding-top:12px;font-size:10px;line-height:1.55;color:#8a9488}
+.jrs-availability-caption>span:nth-child(2){flex:1}
+.jrs-availability-caption b{font-weight:850;color:#6b866d}
+.jrs-availability-dot{width:8px;height:8px;border-radius:100%;flex:none;background:#7da783}
+.jrs-availability-caption .btn{white-space:nowrap}
+@media(max-width:1020px){.jrs-availability-grid{grid-template-columns:1fr 1fr}.jrs-availability-card:last-child{grid-column:1/-1}.jrs-employee-metrics{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.jrs-availability-section{padding:14px}.jrs-availability-date{width:100%}.jrs-availability-date input{max-width:none;width:100%}.jrs-availability-grid{grid-template-columns:1fr}.jrs-availability-card:last-child{grid-column:auto}.jrs-availability-card{min-height:124px}.jrs-availability-caption{flex-wrap:wrap}.jrs-availability-caption .btn{width:100%}.jrs-employee-metrics{gap:8px}.jrs-employee-metrics>.card{padding:12px!important}.jrs-employee-metrics b{font-size:24px}.jrs-employee-filters{flex-direction:column}.jrs-employee-filters>select{max-width:none}.jrs-employee-row{flex-wrap:wrap}.jrs-employee-row>.jrs-employee-state{order:3}.jrs-employee-row>button{order:4;margin-left:auto}}
+@media print{.jrs-availability-section{page-break-inside:avoid;box-shadow:none!important}.jrs-availability-caption .btn{display:none!important}}
