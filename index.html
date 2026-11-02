@@ -336,6 +336,14 @@ input::placeholder,textarea::placeholder{color:#a4afa6}
 .jrs-photo-editor{border:1px solid #dfe7de;border-radius:12px;padding:16px;background:#f8faf7;margin-top:7px}.jrs-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.jrs-photo-head h3{font-size:15px;color:#263a2a;margin-bottom:5px}.jrs-photo-head small{font-size:11px;color:#839285}.jrs-photo-head label{cursor:pointer}.jrs-photo-help{font-size:11px;color:#869487;margin:12px 0}.jrs-photo-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}.jrs-photo-thumb{border:1px solid #e0e7df;border-radius:9px;background:#fff;overflow:hidden}.jrs-photo-thumb img{height:112px;width:100%;object-fit:cover;display:block}.jrs-photo-actions{display:grid;gap:5px;padding:7px}.jrs-photo-actions .btn{width:100%;white-space:normal}.jrs-photo-empty{grid-column:1/-1;border:1px dashed #cbd6ca;padding:20px;border-radius:8px;color:#869587;font-size:12px;text-align:center}.jrs-photo-message{font-size:11px;color:#627a66;margin:11px 0 0}
 @media(max-width:620px){.jrs-photo-thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}.jrs-photo-head label{width:100%}}
 </style>
+<style id="jrs-equipment-delete-style">
+.jrs-btn-delete{color:#b23434!important;background:#fff2f0!important;border:1px solid #f0c4be!important;font-weight:750}
+.jrs-btn-delete:hover{background:#ffe3de!important;border-color:#da817a!important}
+.jrs-equipment-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.jrs-equipment-actions .jrs-btn-delete{margin-left:auto}
+.equip-foot .actions{flex-wrap:wrap}
+@media(max-width:580px){.jrs-equipment-actions .jrs-btn-delete{margin-left:0}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -494,8 +502,7 @@ function dash(){
   ['vehicles','Veículos e frota','Consultar registros'],
   ['bookings','Agenda','Ver programações']
  ].filter(x=>canView(x[0]));
- return '<div class="dashboard-head"><div><span class="eyebrow">PAINEL OPERACIONAL · VISÃO CONSOLIDADA</span><h1>Bom trabalho, equipe JRS <span class="heading-accent">.</span></h1><p class="subtitle">Tudo o que sua operação precisa, em um só lugar.</p></div><div class="dashboard-date"><span class="dashboard-date-dot"></span>'+esc(today)+'</div></div>'
- +homeAgenda()
+ return homeAgenda()
  +'<div class="dash-hero"><div class="dash-hero-copy"><span class="dash-kicker"><span class="hero-dot"></span> CENTRAL DE CONTROLE</span><h2>Gestão que acompanha<br><em>a força da sua operação.</em></h2><p>Acompanhe a frota, organize locações e transforme solicitações em resultados.</p><div class="actions">'+(canEdit('quotes')?'<button class="btn primary" onclick="openQuote()">＋ Criar orçamento</button>':'')+'<button class="btn hero-outline" onclick="go(\'proposals\')">Propostas comerciais <span>↗</span></button></div></div><div class="hero-art" aria-hidden="true"><span class="art-grid"></span><span class="art-circle"></span><span class="art-lift">JRS</span><span class="art-caption">OPERAÇÃO<br>EM MOVIMENTO</span><span class="art-line"></span><span class="art-cube"></span></div></div>'
  +'<div class="dash-stat-grid">'+metrics.map(m=>'<button type="button" class="dash-stat card" onclick="go(\''+m[3]+'\')" '+(!canView(m[3])?'disabled':'')+'><div class="stat-top"><span class="stat-index">'+m[4]+' / INDICADOR</span><span class="stat-arrow">↗</span></div><div class="stat-val">'+m[1]+'</div><div class="stat-label">'+m[0]+'</div><small>'+m[2]+'</small></button>').join('')+'</div>'
  +'<div class="dash-panels"><div class="card fleet-panel"><div class="card-head"><div><span class="mini-overline">INTELIGÊNCIA OPERACIONAL</span><h3>Composição da frota</h3><small>Equipamentos cadastrados por categoria</small></div><span class="panel-counter">'+db.equipment.length+' ativos no cadastro</span></div><div class="category-bars">'+datasets.map((d,i)=>'<div class="category-line"><span class="category-name">'+esc(d.name)+'</span><span class="category-track"><span class="category-fill" style="width:'+Math.round(d.n/biggest*100)+'%"></span></span><b>'+d.n+'</b></div>').join('')+'</div><div class="fleet-panel-footer"><span><span class="legend-dot"></span> Registros demonstrativos</span><button class="inline-action" onclick="go(\'equipment\')">Gerenciar equipamentos ↗</button></div></div>'
@@ -798,7 +805,7 @@ function unifiedEquipmentItems(){
  const icons={'Guindastes':'🏗️','Caminhões Munck':'🚛','Empilhadeiras':'🏭','Plataformas Elevatórias':'⚙️','Contêineres':'📦','Guinchos':'🚒','Retroescavadeiras':'🚜'};
  const equipments=original.map(e=>{
   const linked=e.vehicleId?db.vehicles.find(v=>v.id===e.vehicleId):null;
-  return '<div class="equipment-card"><div class="equipment-cover" data-eq-photo="'+esc(e.id)+'"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span><span>Responsável: '+esc(linked?.driver||e.driver||'Não definido')+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button>':'')+'</div></div></div></div>'
+  return '<div class="equipment-card"><div class="equipment-cover" data-eq-photo="'+esc(e.id)+'"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span><span>Responsável: '+esc(linked?.driver||e.driver||'Não definido')+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button><button class="btn tiny jrs-btn-delete" onclick="deleteEquipment(\''+esc(e.id)+'\')" aria-label="Excluir equipamento '+esc(e.name)+'">Excluir</button>':'')+'</div></div></div></div>'
  });
  const cars=fleet.map(v=>{
   const t=vehicleType(v);
@@ -989,6 +996,45 @@ const field=(label,name,type='text',required=true,options)=>'<div class="field">
 const form=(title,fields,cb)=>openDialog(title,'<form id="entryForm" class="form-grid">'+fields+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
 function bindForm(fn){document.getElementById('entryForm').addEventListener('submit',e=>{e.preventDefault();let f=Object.fromEntries(new FormData(e.target));fn(f)})}
 
+
+/* jrs-equipment-delete-v1: exclusão confirmada, com proteção de reservas/serviços atuais.
+   Apenas o equipamento é excluído; o cadastro de veículo vinculado permanece. */
+async function deleteEquipment(id){
+ if(!requireEdit('equipment'))return;
+ const e=db.equipment.find(item=>item.id===id);
+ if(!e)return alert('O equipamento não foi encontrado. Atualize a página.');
+ const today=isoCalendar(new Date());
+ const bookings=(db.bookings||[]).filter(b=>
+  b.equipment===e.name && b.status!=='Cancelada' && (!b.end||b.end>=today)
+ );
+ const operations=(db.operations||[]).filter(o=>
+  o.equipment===e.name && !['Concluída','Cancelada'].includes(o.status)
+ );
+ if(bookings.length||operations.length){
+  alert('Não é possível excluir "'+e.name+'" porque existem '+bookings.length+
+   ' reserva(s) atual(is) ou futura(s) e '+operations.length+
+   ' operação(ões) pendente(s). Resolva esses agendamentos antes da exclusão. Nenhum dado foi removido.');
+  return;
+ }
+ const linkedVehicle=e.vehicleId?db.vehicles.find(v=>v.id===e.vehicleId):null;
+ const warning='Excluir permanentemente o equipamento "'+e.name+'" ('+e.id+')?\n\n'+
+   'O equipamento será removido do catálogo e suas fotos serão apagadas deste navegador. '+
+   'Orçamentos, propostas e agendamentos históricos serão preservados como registro.'+
+   (linkedVehicle?'\n\nO veículo vinculado (placa '+linkedVehicle.plate+') continuará cadastrado na frota.':'')+
+   '\n\nEsta ação não pode ser desfeita.';
+ if(!confirm(warning))return;
+ try{
+  if(window.JRSPhotos?.removeAll)await window.JRSPhotos.removeAll(e.id);
+  const idx=db.equipment.findIndex(item=>item.id===id);
+  if(idx===-1)throw Error('O equipamento não está mais no cadastro.');
+  db.equipment.splice(idx,1);
+  save();closeDialog();render();
+  alert('Equipamento excluído com sucesso. O histórico de reservas e propostas foi preservado.');
+ }catch(err){
+  alert('Não foi possível concluir a exclusão. Nenhuma alteração foi feita no cadastro. '+(err.message||'Verifique o armazenamento local.'));
+ }
+}
+
 function openEquipment(id){
  if(!requireEdit('equipment'))return;
  const e=id?db.equipment.find(x=>x.id===id):null;
@@ -1000,7 +1046,7 @@ function openEquipment(id){
  +field('Motorista / responsável','driver','text',false)+field('Uso / observação','driverNotes','text',false)
  +field('Descrição operacional','equipmentDescription','textarea',false)
  +'<div class="span2 jrs-photo-editor" id="recordPhotoGallery"></div>'
- +'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
+ +'<div class="span2 actions jrs-equipment-actions"><button class="btn primary" type="submit">Salvar equipamento</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button>'+(e?'<button class="btn jrs-btn-delete" type="button" onclick="deleteEquipment(\''+esc(e.id)+'\')">Excluir equipamento</button>':'')+'</div></form>');
  if(e){
   for(const k of ['name','category','status','capacity','serial','driver','driverNotes','equipmentDescription'])document.getElementsByName(k)[0].value=e[k]||'';
   if(window.JRSPhotos)window.JRSPhotos.draw(e.id,equipmentCover,equipmentSetCover);
