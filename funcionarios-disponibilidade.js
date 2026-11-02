@@ -118,8 +118,9 @@ function resourceAvailability(date,boardRows){
  const validRows=(boardRows||[]).filter(r=>r.active!==false);
  for(const row of validRows){
   if(!(db.fleetBoardEntries||[]).some(e=>e.date===date&&e.rowId===row.id&&e.status!=='Cancelada'))continue;
+  const linkedVehicle=row.vehicleId?(db.vehicles||[]).find(v=>v.id===row.vehicleId):null;
   const eq=row.equipmentId?db.equipment.find(e=>e.id===row.equipmentId):
-   row.vehicleId?db.equipment.find(e=>e.vehicleId===row.vehicleId):null;
+   row.vehicleId?db.equipment.find(e=>e.vehicleId===row.vehicleId||(linkedVehicle&&e.vehiclePlate&&String(e.vehiclePlate).toUpperCase()===String(linkedVehicle.plate||'').toUpperCase())):null;
   if(eq)busyEq.add(eq.id);
   if(row.vehicleId)busyEq.add('V:'+row.vehicleId);
  }
@@ -130,12 +131,13 @@ function resourceAvailability(date,boardRows){
  const equipment=[];
  for(const e of db.equipment||[]){
   if(e.active===false)continue;
-  const linked=e.vehicleId?(db.vehicles||[]).find(v=>v.id===e.vehicleId):null;
+  const linked=e.vehicleId?(db.vehicles||[]).find(v=>v.id===e.vehicleId):
+   e.vehiclePlate?(db.vehicles||[]).find(v=>String(v.plate||'').toUpperCase()===String(e.vehiclePlate).toUpperCase()):null;
   equipment.push({id:e.id,name:e.name||e.serial||'Equipamento',status:e.status||'Indisponível',busy:busyEq.has(e.id)||!!(linked&&busyEq.has('V:'+linked.id)),type:'equipment'});
  }
  // Avoid listing the same vehicle twice when linked into equipment catalog.
  for(const v of db.vehicles||[]){
-  if((db.equipment||[]).some(e=>e.vehicleId===v.id||e.vehiclePlate===v.plate))continue;
+  if((db.equipment||[]).some(e=>e.vehicleId===v.id||(e.vehiclePlate&&v.plate&&String(e.vehiclePlate).toUpperCase()===String(v.plate).toUpperCase())))continue;
   equipment.push({id:'V:'+v.id,name:(v.makeModel||'Veículo')+(v.plate?' · '+v.plate:''),status:v.fleetStatus==='Em atividade'?'Disponível':(v.fleetStatus||'Não verificado'),busy:busyEq.has('V:'+v.id),type:'vehicle'});
  }
  const equipmentResult={
