@@ -150,18 +150,18 @@ async function submitInspection(ev,obj){
  }catch(ex){document.getElementById('srv-error').textContent=ex.message||'Erro ao salvar.'}
  finally{button.disabled=false}
 }
-function syncAsset(ref){
+function syncAsset(ref,wasActive=false){
  const a=assetRecord(ref);if(!a)return;
  const working=maintenances().some(x=>x.asset===ref&&['Em execução','Aguardando peças'].includes(x.status));
  if(ref.startsWith('E:')){
   if(working)a.status='Manutenção';
-  else if(a.status==='Manutenção')a.status='Indisponível';
+  else if(wasActive&&a.status==='Manutenção')a.status='Indisponível';
   const linked=(db.vehicles||[]).find(v=>v.id===a.vehicleId);
   if(linked&&working)linked.fleetStatus='Em manutenção';
-  else if(linked&&linked.fleetStatus==='Em manutenção')linked.fleetStatus='Não verificado';
+  else if(linked&&wasActive&&linked.fleetStatus==='Em manutenção')linked.fleetStatus='Não verificado';
  }else if(ref.startsWith('V:')){
   if(working)a.fleetStatus='Em manutenção';
-  else if(a.fleetStatus==='Em manutenção')a.fleetStatus='Não verificado';
+  else if(wasActive&&a.fleetStatus==='Em manutenção')a.fleetStatus='Não verificado';
  }
 }
 function maintenanceForm(id){
@@ -199,12 +199,13 @@ async function submitMaintenance(ev,obj){
   const cost=data.cost===''?0:Number(data.cost);
   if(!Number.isFinite(cost)||cost<0||cost>1e10)throw Error('Informe um custo válido.');
   data.cost=cost;data.assetLabel=assetRef(data.asset);
-  const previous=obj?.asset||'',files=Array.from(document.getElementById('srv-files')?.files||[]);
+  const previous=obj?.asset||'',activeStates=['Em execução','Aguardando peças'];
+  const previousWasActive=!!obj&&activeStates.includes(obj.status),files=Array.from(document.getElementById('srv-files')?.files||[]);
   const record=obj||{id:uid('MAN'),createdAt:new Date().toISOString()};
   Object.assign(record,data,{updatedAt:new Date().toISOString()});
   if(!obj)maintenances().push(record);
-  if(previous&&previous!==data.asset)syncAsset(previous);
-  syncAsset(data.asset);save();
+  if(previous&&previous!==data.asset)syncAsset(previous,previousWasActive);
+  syncAsset(data.asset,previous===data.asset&&previousWasActive);save();
   if(files.length)try{await window.JRSWorkPhotos.upload('maintenance:'+record.id,files)}catch(err){alert('Manutenção salva, mas algumas fotos não foram anexadas: '+err.message)}
   closeDialog();render();if(!obj)maintenanceForm(record.id);
  }catch(ex){document.getElementById('srv-error').textContent=ex.message||'Erro ao salvar.'}
