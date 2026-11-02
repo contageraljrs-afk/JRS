@@ -142,5 +142,15 @@ async function draw(id,getCover,setCover){
   }
  }catch(e){thumbs.textContent=e.message||'Não foi possível carregar a galeria.'}
 }
-window.JRSPhotos={hydrate,draw};
+
+async function removeAll(equipmentId){
+ const db=await database();
+ const transaction=db.transaction('images','readonly');
+ const keys=await request(transaction.objectStore('images').index('equipment').getAllKeys(equipmentId));
+ if(keys.length){await write(store=>{keys.forEach(id=>store.delete(id));});}
+ dropCache(equipmentId);
+ return keys.length;
+}
+
+window.JRSPhotos={hydrate,draw,removeAll};
 })();
