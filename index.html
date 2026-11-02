@@ -46,6 +46,7 @@
 #vehicleForm textarea{min-height:92px}
 </style>
 <script src="./frota-protegida.js"></script>
+<script src="./frota-responsaveis-protegida.js"></script>
 <style id="fleet-activation-css">.fleet-activation{margin-bottom:18px;border:1px solid #a17c24;background:#2d291b}.fleet-activation h3{color:#ffd34f;font-size:18px;margin-bottom:8px}.fleet-activation p{max-width:650px}</style>
 
 <style id="jrs-next-ui-v1">
@@ -343,7 +344,7 @@ input::placeholder,textarea::placeholder{color:#a4afa6}
 <script>
 'use strict';
 const STORE='jrs_smart_rental_demo_v2';
-const cats=['Guindastes','Caminhões Munck','Empilhadeiras','Plataformas Elevatórias','Contêineres'];
+const cats=['Guindastes','Caminhões Munck','Empilhadeiras','Plataformas Elevatórias','Contêineres','Guinchos','Retroescavadeiras'];
 const seed={
 equipment:[{id:'EQ-001',name:'Guindaste demonstrativo 01',category:'Guindastes',status:'Disponível',capacity:'A cadastrar',serial:'—'},{id:'EQ-002',name:'Munck demonstrativo 01',category:'Caminhões Munck',status:'Em operação',capacity:'A cadastrar',serial:'—'},{id:'EQ-003',name:'Empilhadeira demonstrativa 01',category:'Empilhadeiras',status:'Disponível',capacity:'A cadastrar',serial:'—'},{id:'EQ-004',name:'Plataforma demonstrativa 01',category:'Plataformas Elevatórias',status:'Manutenção',capacity:'A cadastrar',serial:'—'},{id:'EQ-005',name:'Contêiner demonstrativo 01',category:'Contêineres',status:'Reservado',capacity:'A cadastrar',serial:'—'}],
 clients:[{id:'CL-001',name:'Cliente Exemplo A',phone:'(00) 00000-0000',email:'cliente.exemplo@example.com',city:'Cidade Exemplo'},{id:'CL-002',name:'Cliente Exemplo B',phone:'(00) 00000-0000',email:'cliente.b@example.com',city:'Cidade Exemplo'}],
@@ -455,15 +456,15 @@ function dash(){
 const fleetUnlockFlag='jrs_fleet_bundle_20261029_unlocked';
 
 /* jrs-unified-fleet-v1: tipos de veículos e integração seletiva com o catálogo de equipamentos */
-const vehicleTypes=['Não classificado','Guindaste','Munck','Carro','Caminhão','Cavalo mecânico','Reboque','Empilhadeira','Plataforma elevatória','Contêiner','Ônibus','Utilitário','Outro'];
+const vehicleTypes=['Não classificado','Guindaste','Munck','Guincho','Carro','Caminhão','Cavalo mecânico','Reboque','Empilhadeira','Plataforma elevatória','Contêiner','Ônibus','Utilitário','Outro'];
 const vehicleToEquipmentCategory={
  'Guindaste':'Guindastes','Munck':'Caminhões Munck',
  'Empilhadeira':'Empilhadeiras','Plataforma elevatória':'Plataformas Elevatórias',
- 'Contêiner':'Contêineres'
+ 'Contêiner':'Contêineres','Guincho':'Guinchos'
 };
-const vehicleTypeIcons={'Guindaste':'🏗️','Munck':'🚛','Carro':'🚙','Caminhão':'🚚','Cavalo mecânico':'🚜','Reboque':'🚛','Empilhadeira':'🏭','Plataforma elevatória':'⚙️','Contêiner':'📦','Ônibus':'🚌','Utilitário':'🚐','Outro':'🚗','Não classificado':'🚘'};
+const vehicleTypeIcons={'Guindaste':'🏗️','Munck':'🚛','Guincho':'🚒','Carro':'🚙','Caminhão':'🚚','Cavalo mecânico':'🚜','Reboque':'🚛','Empilhadeira':'🏭','Plataforma elevatória':'⚙️','Contêiner':'📦','Ônibus':'🚌','Utilitário':'🚐','Outro':'🚗','Não classificado':'🚘'};
 function vehicleType(v){return vehicleTypes.includes(v?.vehicleType)?v.vehicleType:'Não classificado';}
-function linkedRental(v){return db.equipment.find(e=>e.vehicleId===v.id||e.vehiclePlate===v.plate);}
+function linkedRental(v){if(!v)return null;const norm=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return db.equipment.find(e=>e.vehicleId===v.id||norm(e.vehiclePlate)===norm(v.plate)||(norm(e.serial)===norm(v.plate)&&norm(v.plate).length===7));}
 function linkVehicleToEquipment(id){
  if(!requireEdit('vehicles')||!requireEdit('equipment'))return;
  const v=db.vehicles.find(x=>x.id===id);
@@ -472,9 +473,10 @@ function linkVehicleToEquipment(id){
  if(!category)return alert('Classifique o veículo como guindaste, Munck ou outra categoria locável para vinculá-lo ao catálogo de equipamentos.');
  if(linkedRental(v))return alert('Este veículo já está vinculado ao catálogo de equipamentos. O cadastro não será duplicado.');
  if(!confirm('Vincular '+v.plate+' ('+t+') ao catálogo de equipamentos? Ficará INDISPONÍVEL até a liberação manual pela equipe JRS.'))return;
- const e={id:uid('EQ'),vehicleId:v.id,vehiclePlate:v.plate,name:t+' · '+v.makeModel+' · '+v.plate,category,status:'Indisponível',capacity:'A cadastrar',serial:v.plate,linkedFromVehicle:true};
+ const e={id:uid('EQ'),vehicleId:v.id,vehiclePlate:v.plate,name:t+' · '+v.makeModel+' · '+v.plate,category,status:'Indisponível',capacity:'A cadastrar',serial:v.plate,driver:v.driver||'',driverNotes:v.driverNotes||'',equipmentDescription:v.equipmentDescription||'',linkedFromVehicle:true};
  db.equipment.push(e);save();go('equipment');alert('Vinculado ao catálogo, inicialmente indisponível. A situação de locação deve ser confirmada manualmente.');
 }
+const photoRosterFlag='jrs_fleet_photo_roster_v1_applied';
 const vehicleStatusOptions=['Não verificado','Em atividade','Fora de operação','Vendido / baixado','Em manutenção'];
 const vehicleKeys=[['plate','Placa'],['makeModel','Marca / modelo'],['manufactureYear','Ano de fabricação'],['modelYear','Ano modelo'],['species','Espécie'],['color','Cor'],['fuel','Combustível'],['origin','Procedência'],['city','Cidade'],['state','UF'],['renavam','RENAVAM'],['chassis','Chassi'],['engine','Nº do motor']];
 const vehicleSecretKeys=new Set(['renavam','chassis','engine']);
@@ -485,10 +487,11 @@ function vehicles(){
  const canModify=canEdit('vehicles');
  return header('Veículos e frota','Cadastre, classifique e visualize seus veículos junto aos equipamentos; a disponibilidade para locação é controlada separadamente.',canModify?'Novo veículo':'', 'openVehicleForm()')
  +'<div class="stats"><div class="card"><small>Registros de veículos</small><div class="bigmetric">'+all.length+'</div><small>Histórico patrimonial</small></div><div class="card"><small>Atividade confirmada manualmente</small><div class="bigmetric">'+confirmed+'</div><small>Não representa disponibilidade para locação</small></div><div class="card"><small>Situação não verificada</small><div class="bigmetric">'+unverified+'</div><small>Confirmar com a equipe da JRS</small></div></div>'
+ +(window.JRS_FLEET_ROSTER_BUNDLE&&!localStorage.getItem(photoRosterFlag)?'<div class="card fleet-activation"><div class="flex" style="justify-content:space-between;gap:15px"><div><h3>Vincular placas e responsáveis da foto</h3><p class="muted">17 veículos com placa e 4 itens sem placa. A correspondência utiliza o cadastro existente e acrescenta motorista/responsável, tipo e descrição; sem apagar RENAVAM ou chassi.</p></div><button class="btn primary" onclick="applyFleetRoster()">Aplicar relação de veículos</button></div></div>':'')
  +(window.JRS_FLEET_BUNDLE&&!localStorage.getItem(fleetUnlockFlag)?'<div class="card fleet-activation"><div class="flex" style="justify-content:space-between;gap:15px"><div><h3>29 veículos prontos para cadastrar</h3><p class="muted">Os dados estão no aplicativo em pacote criptografado. Ative uma única vez para preencher a frota com placas, modelos, RENAVAM, chassis e informações do documento, sem importar arquivos.</p></div><button class="btn primary" onclick="activateFleet()">Ativar 29 veículos</button></div></div>':'')
  +'<div class="note"><b>Dados internos:</b> este módulo recebe informações de documentos confidenciais. Não publica RENAVAM, chassi ou motor no GitHub. O ambiente ainda é demonstrativo, sem proteção de servidor; use somente no seu dispositivo confiável. O relatório é histórico e não comprova posse atual ou disponibilidade.</div>'
  +(canModify?'<div class="card" style="margin-bottom:18px"><div class="card-head"><div><h3>Importação de registros</h3><small>Importe o arquivo JSON privado preparado a partir do relatório Assertiva Veículos.</small></div></div><div class="actions"><input id="vehicle-json-input" aria-label="Importar arquivo JSON de veículos" type="file" accept=".json,application/json" style="display:none" onchange="importVehicles(this)"><button class="btn primary" onclick="document.getElementById(\'vehicle-json-input\').click()">↑ Importar cadastro JSON</button><button class="btn" onclick="exportVehicles()">↓ Exportar cadastro</button></div><small>Registros já existentes com a mesma placa são preservados, sem duplicatas.</small></div>':'')
- +'<div class="filters"><input class="search" placeholder="Buscar placa, modelo, tipo ou ano..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshVehicles()"><select aria-label="Filtrar tipo de veículo" onchange="vehicleTypeFilter=this.value;refreshVehicles()"><option value="">Todos os tipos de veículo</option>'+vehicleTypes.map(t=>'<option value="'+esc(t)+'" '+(vehicleTypeFilter===t?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select><select aria-label="Filtrar espécie" onchange="filterCategory=this.value;refreshVehicles()"><option value="">Todas as espécies</option>'+['CARGA','TRACAO','PASSAGEIRO'].map(t=>'<option '+(filterCategory===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+ +'<div class="filters"><input class="search" placeholder="Buscar placa, modelo, tipo, motorista ou ano..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshVehicles()"><select aria-label="Filtrar tipo de veículo" onchange="vehicleTypeFilter=this.value;refreshVehicles()"><option value="">Todos os tipos de veículo</option>'+vehicleTypes.map(t=>'<option value="'+esc(t)+'" '+(vehicleTypeFilter===t?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select><select aria-label="Filtrar espécie" onchange="filterCategory=this.value;refreshVehicles()"><option value="">Todas as espécies</option>'+['CARGA','TRACAO','PASSAGEIRO'].map(t=>'<option '+(filterCategory===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
  +'<div id="vehiclesResults">'+renderVehiclesList()+'</div>';
 }
 
@@ -541,13 +544,83 @@ async function activateFleet(){
 }
 
 function renderVehiclesList(){
- const data=(db.vehicles||[]).filter(v=>(!filterCategory||v.species===filterCategory)&&(!vehicleTypeFilter||vehicleType(v)===vehicleTypeFilter)&&(!filterText||[v.plate,v.makeModel,v.manufactureYear,v.modelYear,v.city,v.species,v.color,vehicleType(v)].join(' ').toLowerCase().includes(filterText.toLowerCase())));
- return table(['Placa','Marca / modelo','Tipo do veículo','Fab. / Modelo','Situação','Integração','Ações'],data.map(v=>{
+ const data=(db.vehicles||[]).filter(v=>(!filterCategory||v.species===filterCategory)&&(!vehicleTypeFilter||vehicleType(v)===vehicleTypeFilter)&&(!filterText||[v.plate,v.makeModel,v.manufactureYear,v.modelYear,v.city,v.species,v.color,v.driver,v.driverNotes,v.equipmentDescription,vehicleType(v)].join(' ').toLowerCase().includes(filterText.toLowerCase())));
+ return table(['Placa','Marca / modelo','Tipo','Motorista / responsável','Situação','Integração','Ações'],data.map(v=>{
  const linked=linkedRental(v);
- return '<tr><td><b>'+esc(v.plate)+'</b></td><td>'+esc(v.makeModel||'Não informado')+'</td><td><span class="fleet-type-chip">'+esc(vehicleType(v))+'</span></td><td>'+esc(v.manufactureYear||'—')+' / '+esc(v.modelYear||'—')+'</td><td><span class="status '+(v.fleetStatus==='Em atividade'?'available':v.fleetStatus==='Não verificado'?'reserved':'inactive')+'">'+esc(v.fleetStatus||'Não verificado')+'</span></td><td>'+(linked?'<span class="fleet-linked">✓ Vinculado ao catálogo</span>':'<span class="muted">Na frota integrada</span>')+'</td><td><div class="actions"><button class="btn tiny" onclick="viewVehicle(\''+esc(v.id)+'\')">Ver cadastro</button>'+(canEdit('vehicles')?'<button class="btn tiny" onclick="openVehicleForm(\''+esc(v.id)+'\')">Classificar / editar</button>':'')+(!linked&&canEdit('vehicles')&&canEdit('equipment')&&vehicleToEquipmentCategory[vehicleType(v)]?'<button class="btn tiny" onclick="linkVehicleToEquipment(\''+esc(v.id)+'\')">Vincular à locação</button>':'')+'</div></td></tr>';
+ return '<tr><td><b>'+esc(v.plate)+'</b>'+(v.plateNeedsVerification?'<small style="display:block;color:#a27712">Conferir placa</small>':'')+'</td><td>'+esc(v.makeModel||'Não informado')+'<small style="display:block">'+esc(v.equipmentDescription||'')+'</small></td><td><span class="fleet-type-chip">'+esc(vehicleType(v))+'</span></td><td>'+esc(v.driver||v.driverNotes||'Não informado')+'</td><td><span class="status '+(v.fleetStatus==='Em atividade'?'available':v.fleetStatus==='Não verificado'?'reserved':'inactive')+'">'+esc(v.fleetStatus||'Não verificado')+'</span></td><td>'+(linked?'<span class="fleet-linked">✓ Vinculado ao catálogo</span>':'<span class="muted">Na frota integrada</span>')+'</td><td><div class="actions"><button class="btn tiny" onclick="viewVehicle(\''+esc(v.id)+'\')">Ver cadastro</button>'+(canEdit('vehicles')?'<button class="btn tiny" onclick="openVehicleForm(\''+esc(v.id)+'\')">Editar</button>':'')+(!linked&&canEdit('vehicles')&&canEdit('equipment')&&vehicleToEquipmentCategory[vehicleType(v)]?'<button class="btn tiny" onclick="linkVehicleToEquipment(\''+esc(v.id)+'\')">Vincular</button>':'')+'</div></td></tr>';
  }));
 }
 function refreshVehicles(){const target=document.getElementById('vehiclesResults');if(target)target.innerHTML=renderVehiclesList()}
+
+/* jrs-driver-roster-integration-v1: associação de foto por placa + dados locais editáveis */
+async function applyFleetRoster(){
+ if(!requireEdit('vehicles')||!requireEdit('equipment'))return;
+ const pkg=window.JRS_FLEET_ROSTER_BUNDLE;
+ if(!pkg||pkg.count!==17)return alert('Arquivo protegido de correspondências indisponível.');
+ openDialog('Vincular placas e responsáveis da foto',
+ '<div class="note">Serão relacionados 17 veículos com placa e 4 equipamentos sem placa. A sincronização não apaga chassi, RENAVAM, nem libera automaticamente veículos para locação.</div>'
+ +'<form id="rosterForm" class="form-grid"><div class="field span2"><label for="rosterKey">Código privado da frota</label><input type="password" id="rosterKey" autocomplete="off" required placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"></div><div class="span2 actions"><button type="submit" class="btn primary">Atualizar veículos e motoristas</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div><div class="span2" id="rosterError" style="color:#b33" role="alert"></div></form>');
+ document.getElementById('rosterForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const btn=event.target.querySelector('[type="submit"]'),err=document.getElementById('rosterError');btn.disabled=true;err.textContent='';
+  try{
+   if(!window.crypto?.subtle||typeof DecompressionStream==='undefined')throw Error('Este navegador não oferece a criptografia necessária.');
+   const entered=document.getElementById('rosterKey').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+   if(entered.length!==25)throw Error('O código de ativação deve ter 25 caracteres.');
+   const pass=await crypto.subtle.importKey('raw',new TextEncoder().encode(entered.match(/.{5}/g).join('-')),{name:'PBKDF2'},false,['deriveKey']);
+   const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:decode(pkg.salt),iterations:pkg.rounds,hash:'SHA-256'},pass,{name:'AES-GCM',length:256},false,['decrypt']);
+   const ciphertext=await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(pkg.iv),additionalData:new TextEncoder().encode('jrs-foto-frota-v1')},key,decode(pkg.ciphertext));
+   const decoded=JSON.parse(await new Response(new Blob([ciphertext]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+   if(decoded.format!=='jrs-photo-fleet-roster-v1'||decoded.entries.length!==17||decoded.withoutPlate.length!==4)throw Error('Documento de correspondência inválido.');
+   const norm=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+   const vehicleCreates=[],vehicleUpdates=[],equipmentCreates=[],equipmentUpdates=[];
+   for(const item of decoded.entries){
+    const plate=norm(item.plate);
+    if(!/^[A-Z0-9]{7}$/.test(plate))throw Error('Placa inválida na lista.');
+    let v=db.vehicles.find(x=>norm(x.plate)===plate);
+    if(!v&&item.plateNeedsVerification){
+     const alternative=plate.slice(0,4)+(plate[4]==='O'?'0':plate[4]==='0'?'O':plate[4])+plate.slice(5);
+     v=db.vehicles.find(x=>norm(x.plate)===alternative);
+    }
+    const type=vehicleTypes.includes(item.vehicleType)?item.vehicleType:'Não classificado';
+    if(v)vehicleUpdates.push({v,item,type});
+    else {
+     v={id:'VEI-'+plate,plate,makeModel:item.description,vehicleType:type,driver:item.driver||'',driverNotes:item.assignment||'',equipmentDescription:item.description,plateNeedsVerification:!!item.plateNeedsVerification,fleetStatus:item.fleetStatus||'Não verificado',source:'Relação EQUIPAMENTOS fornecida por imagem',sourceDate:decoded.date||'',createdAt:new Date().toISOString()};
+     vehicleCreates.push(v);
+    }
+    const cat=vehicleToEquipmentCategory[type];
+    if(cat){
+     const e=db.equipment.find(eq=>eq.vehicleId===v.id||norm(eq.vehiclePlate)===norm(v.plate)||(norm(eq.serial)===norm(v.plate)&&norm(v.plate).length===7));
+     if(e)equipmentUpdates.push({e,v,item,cat});
+     else equipmentCreates.push({id:uid('EQ'),vehicleId:v.id,vehiclePlate:v.plate,name:item.description+' · '+v.plate,category:cat,status:item.fleetStatus==='Em manutenção'?'Manutenção':'Indisponível',capacity:'A confirmar',serial:v.plate,driver:item.driver||'',driverNotes:item.assignment||'',equipmentDescription:item.description,linkedFromVehicle:true,sourceRosterRef:'PLATE-'+plate});
+    }
+   }
+   for(const item of decoded.withoutPlate){
+    if(db.equipment.some(eq=>eq.sourceRosterRef===item.reference))continue;
+    equipmentCreates.push({id:uid('EQ'),name:item.description,category:item.category,status:'Indisponível',capacity:'A confirmar',serial:item.serial||'Sem placa',driver:item.driver||'',driverNotes:item.notes||'',equipmentDescription:item.description,sourceRosterRef:item.reference,source:'Relação EQUIPAMENTOS fornecida por imagem'});
+   }
+   if(!confirm('Confirmar vínculo de 17 placas e 4 itens sem placa? Todos os novos equipamentos ficarão indisponíveis para locação até liberação manual.'))return;
+   for(const {v,item,type} of vehicleUpdates){
+    v.vehicleType=type;v.driver=item.driver||'';v.driverNotes=item.assignment||'';v.equipmentDescription=item.description;
+    if(item.plateNeedsVerification)v.plateNeedsVerification=true;
+    if(item.fleetStatus==='Em manutenção')v.fleetStatus='Em manutenção';
+    v.rosterMatchedAt=new Date().toISOString();
+   }
+   db.vehicles.push(...vehicleCreates);
+   for(const {e,v,item,cat} of equipmentUpdates){
+    e.vehicleId=v.id;e.vehiclePlate=v.plate;e.driver=item.driver||'';e.driverNotes=item.assignment||'';e.equipmentDescription=item.description;e.category=cat;
+    if(item.fleetStatus==='Em manutenção')e.status='Manutenção';
+   }
+   db.equipment.push(...equipmentCreates);
+   save();localStorage.setItem(photoRosterFlag,new Date().toISOString());document.getElementById('rosterKey').value='';
+   closeDialog();go('vehicles');
+   alert('Concluído: '+vehicleUpdates.length+' cadastros de placas atualizados, '+vehicleCreates.length+' novos veículos e '+equipmentCreates.length+' equipamentos adicionados. Confira a placa sinalizada como incerta.');
+  }catch(ex){err.textContent=ex.name==='OperationError'?'Código inválido. Confira o código da frota.':(ex.message||'Não foi possível aplicar a lista.');}
+  finally{btn.disabled=false;}
+ });
+}
+
 function vehicleRecord(f){
  const result={},plate=String(f.plate||'').trim().toUpperCase().replace(/[\s-]/g,'');
  if(!/^[A-Z0-9]{7}$/.test(plate))throw Error('A placa deve conter sete letras ou números.');
@@ -555,6 +628,7 @@ function vehicleRecord(f){
  for(const k of vehicleKeys.map(x=>x[0]).filter(k=>k!=='plate'))result[k]=String(f[k]||'').trim();
  if(!result.makeModel)throw Error('Informe a marca e o modelo do veículo.');
  result.vehicleType=vehicleTypes.includes(f.vehicleType)?f.vehicleType:'Não classificado';
+ result.driver=String(f.driver||'').trim();result.driverNotes=String(f.driverNotes||'').trim();result.equipmentDescription=String(f.equipmentDescription||'').trim();
  result.fleetStatus=vehicleStatusOptions.includes(f.fleetStatus)?f.fleetStatus:'Não verificado';
  result.notes=String(f.notes||'').trim();
  return result;
@@ -568,7 +642,11 @@ function openVehicleForm(id){
  '<div class="field"><label for="v-'+k+'">'+label+'</label><input id="v-'+k+'" name="'+k+'" '+(k==='plate'||k==='makeModel'?'required':'')+' value="'+esc(v?.[k]||'')+'" /></div>').join('');
  openDialog(v?'Editar veículo · '+v.plate:'Novo veículo',
  '<div class="note">Registro interno. Não insira dados de terceiros sem autorização.</div><form id="vehicleForm" class="form-grid">'
- +vehicleTypeSelect+sections+'<div class="field"><label for="v-fleetStatus">Situação atual</label><select id="v-fleetStatus" name="fleetStatus">'+vehicleStatusOptions.map(s=>'<option '+((v?.fleetStatus||'Não verificado')===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'
+ +vehicleTypeSelect
+ +'<div class="field"><label for="v-driver">Motorista / responsável pelo veículo</label><input id="v-driver" name="driver" value="'+esc(v?.driver||'')+'" placeholder="Nome do motorista / responsável"></div>'
+ +'<div class="field"><label for="v-driverNotes">Uso / observação</label><input id="v-driverNotes" name="driverNotes" value="'+esc(v?.driverNotes||'')+'" placeholder="Ex.: uso geral"></div>'
+ +'<div class="field span2"><label for="v-equipmentDescription">Descrição do equipamento / operação</label><input id="v-equipmentDescription" name="equipmentDescription" value="'+esc(v?.equipmentDescription||'')+'" placeholder="Ex.: Munck TKA 45.700"></div>'
+ +sections+'<div class="field"><label for="v-fleetStatus">Situação atual</label><select id="v-fleetStatus" name="fleetStatus">'+vehicleStatusOptions.map(s=>'<option '+((v?.fleetStatus||'Não verificado')===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'
  +'<div class="field span2"><label for="v-notes">Observações</label><textarea id="v-notes" name="notes">'+esc(v?.notes||'')+'</textarea></div><div class="span2 actions"><button type="submit" class="btn primary">Salvar veículo</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div><div id="vehicle-form-error" role="alert" class="span2" style="color:#ff9999"></div></form>');
  document.getElementById('vehicleForm').addEventListener('submit',ev=>{
   ev.preventDefault();
@@ -579,7 +657,7 @@ function openVehicleForm(id){
     const linked=linkedRental(v),previousType=vehicleType(v),previousName=linked?.name;
     Object.assign(v,data,{updatedAt:new Date().toISOString()});
     if(linked){
-     linked.vehiclePlate=v.plate;linked.serial=v.plate;
+     linked.vehiclePlate=v.plate;linked.serial=v.plate;linked.driver=data.driver;linked.driverNotes=data.driverNotes;linked.equipmentDescription=data.equipmentDescription;
      if(previousName===previousType+' · '+(linked.makeModel||v.makeModel)+' · '+linked.vehiclePlate||linked.linkedFromVehicle)linked.name=data.vehicleType+' · '+data.makeModel+' · '+data.plate;
      if(vehicleToEquipmentCategory[data.vehicleType])linked.category=vehicleToEquipmentCategory[data.vehicleType];
      else {linked.status='Indisponível';linked.category=vehicleToEquipmentCategory[previousType]||linked.category;}
@@ -593,9 +671,9 @@ function openVehicleForm(id){
 function viewVehicle(id){
  if(!canView('vehicles'))return;
  const v=db.vehicles.find(x=>x.id===id);if(!v)return;
- const rows=[['vehicleType','Tipo do veículo'],...vehicleKeys].map(([k,label])=>'<tr><td style="font-weight:700;color:#aab3bf;width:38%">'+label+'</td><td>'+esc(vehicleSecretKeys.has(k)&&!canEdit('vehicles')?vehicleMasked(v[k]):v[k]||'Não informado')+'</td></tr>').join('');
+ const rows=[['vehicleType','Tipo do veículo'],['equipmentDescription','Descrição do equipamento'],['driver','Motorista / responsável'],['driverNotes','Uso / observação'],...vehicleKeys].map(([k,label])=>'<tr><td style="font-weight:700;color:#aab3bf;width:38%">'+label+'</td><td>'+esc(vehicleSecretKeys.has(k)&&!canEdit('vehicles')?vehicleMasked(v[k]):v[k]||'Não informado')+'</td></tr>').join('');
  openDialog('Cadastro do veículo · '+v.plate,
- '<div class="note">Dados oriundos de histórico cadastral. Não comprovam propriedade atual nem disponibilidade para locação.</div>'
+ '<div class="note">Dados oriundos de histórico cadastral. Não comprovam propriedade atual nem disponibilidade para locação.</div>'+(v.plateNeedsVerification?'<div class="note">Confirme os caracteres desta placa na documentação original.</div>':'')
  +'<div class="tablewrap"><table class="table"><tbody>'+rows+'<tr><td>Situação</td><td>'+esc(v.fleetStatus||'Não verificado')+'</td></tr><tr><td>Fonte</td><td>'+esc(v.source||'Manual')+'</td></tr><tr><td>Data da consulta</td><td>'+esc(v.sourceDate||'—')+'</td></tr><tr><td>Observações</td><td style="white-space:normal">'+esc(v.notes||'—')+'</td></tr></tbody></table></div>'
  +(canEdit('vehicles')?'<div class="actions" style="margin-top:19px"><button class="btn primary" onclick="closeDialog();openVehicleForm(\''+esc(id)+'\')">Editar informações</button>'+(canEdit('equipment')&&!linkedRental(v)&&vehicleToEquipmentCategory[vehicleType(v)]?'<button class="btn" onclick="closeDialog();linkVehicleToEquipment(\''+esc(id)+'\')">Vincular ao catálogo de locação</button>':'')+'</div>':''));
 }
@@ -647,16 +725,16 @@ function equipment(){
 function refreshEquipment(){const target=document.getElementById('equipmentResults');if(target)target.innerHTML=unifiedEquipmentItems()}
 function unifiedEquipmentItems(){
  const normalize=str=>String(str||'').toLocaleLowerCase('pt-BR');
- const original=db.equipment.filter(e=>(!filterText||normalize([e.name,e.category,e.serial].join(' ')).includes(normalize(filterText)))&&(!filterCategory||e.category===filterCategory||(e.vehicleId&&vehicleType(db.vehicles.find(v=>v.id===e.vehicleId))===filterCategory)));
+ const original=db.equipment.filter(e=>(!filterText||normalize([e.name,e.category,e.serial,e.driver,e.driverNotes,e.equipmentDescription].join(' ')).includes(normalize(filterText)))&&(!filterCategory||e.category===filterCategory||(e.vehicleId&&vehicleType(db.vehicles.find(v=>v.id===e.vehicleId))===filterCategory)));
  const fleet=canView('vehicles')?db.vehicles.filter(v=>{
   if(linkedRental(v))return false;
   const t=vehicleType(v);
-  return (!filterText||normalize([v.plate,v.makeModel,t,v.modelYear].join(' ')).includes(normalize(filterText)))&&(!filterCategory||t===filterCategory||vehicleToEquipmentCategory[t]===filterCategory);
+  return (!filterText||normalize([v.plate,v.makeModel,t,v.modelYear,v.driver,v.driverNotes,v.equipmentDescription].join(' ')).includes(normalize(filterText)))&&(!filterCategory||t===filterCategory||vehicleToEquipmentCategory[t]===filterCategory);
  }):[];
- const icons={'Guindastes':'🏗️','Caminhões Munck':'🚛','Empilhadeiras':'🏭','Plataformas Elevatórias':'⚙️','Contêineres':'📦'};
+ const icons={'Guindastes':'🏗️','Caminhões Munck':'🚛','Empilhadeiras':'🏭','Plataformas Elevatórias':'⚙️','Contêineres':'📦','Guinchos':'🚒','Retroescavadeiras':'🚜'};
  const equipments=original.map(e=>{
   const linked=e.vehicleId?db.vehicles.find(v=>v.id===e.vehicleId):null;
-  return '<div class="equipment-card"><div class="equipment-cover"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button>':'')+'</div></div></div></div>'
+  return '<div class="equipment-card"><div class="equipment-cover"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span><span>Responsável: '+esc(linked?.driver||e.driver||'Não definido')+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button>':'')+'</div></div></div></div>'
  });
  const cars=fleet.map(v=>{
   const t=vehicleType(v);
@@ -846,9 +924,24 @@ function closeDialog(){document.getElementById('dialog').classList.remove('open'
 const field=(label,name,type='text',required=true,options)=>'<div class="field"><label for="f-'+name+'">'+label+'</label>'+(options?'<select id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>':type==='textarea'?'<textarea id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'></textarea>':'<input id="f-'+name+'" name="'+name+'" type="'+type+'" '+(required?'required':'')+'></div>');
 const form=(title,fields,cb)=>openDialog(title,'<form id="entryForm" class="form-grid">'+fields+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
 function bindForm(fn){document.getElementById('entryForm').addEventListener('submit',e=>{e.preventDefault();let f=Object.fromEntries(new FormData(e.target));fn(f)})}
-function openEquipment(id){if(!requireEdit('equipment'))return;let e=db.equipment.find(x=>x.id===id);openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'+field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)+field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])+field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button></div></form>');
-if(e){for(let k of ['name','category','status','capacity','serial'])document.getElementsByName(k)[0].value=e[k]||''}
-bindForm(f=>{if(e)Object.assign(e,f);else db.equipment.push({id:uid('EQ'),...f});save();closeDialog();render()})}
+function openEquipment(id){
+ if(!requireEdit('equipment'))return;
+ let e=db.equipment.find(x=>x.id===id);
+ openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'
+ +field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)
+ +field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])
+ +field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)
+ +field('Motorista / responsável','driver','text',false)
+ +field('Uso / observação','driverNotes','text',false)
+ +field('Descrição operacional','equipmentDescription','textarea',false)
+ +'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button></div></form>');
+ if(e)for(let k of ['name','category','status','capacity','serial','driver','driverNotes','equipmentDescription'])document.getElementsByName(k)[0].value=e[k]||'';
+ bindForm(f=>{
+  if(e){Object.assign(e,f);const v=e.vehicleId?db.vehicles.find(x=>x.id===e.vehicleId):null;if(v){v.driver=f.driver;v.driverNotes=f.driverNotes;v.equipmentDescription=f.equipmentDescription;}}
+  else db.equipment.push({id:uid('EQ'),...f});
+  save();closeDialog();render();
+ });
+}
 function openQuote(){if(!requireEdit('quotes'))return;openDialog('Nova solicitação de orçamento','<form id="entryForm" class="form-grid">'+field('Nome / razão social','client')+field('Equipamento desejado','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Data prevista','date','date')+field('Valor proposto (R$)','value','number',false)+field('Descrição do serviço','description','textarea')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar solicitação</button></div></form>');bindForm(f=>{db.quotes.push({...f,id:uid('ORC'),status:'Novo',value:Number(f.value)||0});save();closeDialog();render();alert('Solicitação recebida! Nossa equipe comercial entrará em contato para apresentar a melhor solução para sua operação. (Apenas demonstração local.)')})}
 function advanceQuote(id){if(!requireEdit('quotes'))return;let q=db.quotes.find(x=>x.id===id),steps=['Novo','Em análise','Proposta enviada','Em negociação','Aprovado','Em operação','Concluído'];let i=steps.indexOf(q.status);q.status=steps[Math.min(steps.length-1,i+1)];save();render()}
 function openBooking(){if(!requireEdit('bookings'))return;openDialog('Criar reserva','<form id="entryForm" class="form-grid">'+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Cliente','client')+field('Data inicial','start','date')+field('Data final','end','date')+'<div class="span2"><div class="note">O sistema bloqueia conflitos com outras reservas registradas neste navegador.</div></div><div class="span2 actions"><button class="btn primary" type="submit">Confirmar reserva</button></div></form>');bindForm(f=>{if(f.end<f.start)return alert('A data final deve ser posterior ou igual à inicial.');if(db.bookings.some(b=>b.equipment===f.equipment&&b.start<=f.end&&b.end>=f.start&&b.status==='Confirmada'))return alert('Conflito: já existe uma reserva confirmada para esse equipamento nesse período.');db.bookings.push({...f,id:uid('RS'),status:'Confirmada'});save();closeDialog();render()})}
