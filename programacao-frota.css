@@ -82,3 +82,21 @@ button.fboard-item:hover{filter:brightness(.97);box-shadow:0 1px 8px #272f1b13}
  .fboard-item{print-color-adjust:exact;-webkit-print-color-adjust:exact}
  @page{size:landscape;margin:8mm}
 }
+
+
+/* jrs-fleet-help-and-checklist-v1: ajudante e alerta vermelho da operação */
+.fboard-item-helper{display:block;font-size:9px;font-weight:750;line-height:1.35;color:inherit;opacity:.88;overflow-wrap:anywhere}
+.fboard-item-bring{display:flex;align-items:flex-start;gap:5px;margin-top:5px;background:#fff0f0;border:1px solid #f0b6b6;border-left:3px solid #d92d2d;padding:6px 7px;border-radius:5px;color:#bd1d1d!important;font-size:10px;font-weight:850;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+.fboard-item-bring strong{display:block;font-size:9px;font-weight:850;line-height:1.2;margin-bottom:2px;color:#ab1b1b}
+.fboard-bring-icon{font-size:13px;line-height:1;flex:0 0 auto;color:#d92d2d}
+.fboard-bring-form{display:flex;flex-direction:column;gap:7px;border:1px solid #f2cccc;border-radius:10px;background:#fff8f8;padding:14px 15px;min-width:0}
+.fboard-bring-label{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fboard-bring-label>label{margin:0;font-weight:850;color:#a71d1d!important;font-size:13px}
+.fboard-bring-warning{background:#ffe2e2;color:#b92020;border:1px solid #f7baba;border-radius:6px;font-size:10px;letter-spacing:.35px;font-weight:850;padding:5px 7px;white-space:nowrap}
+#board-bringItems{width:100%;min-height:82px;resize:vertical;border:2px solid #e84141!important;border-radius:8px;color:#ae1717!important;background:#fff!important;font-weight:800;font-size:14px!important;line-height:1.5;padding:11px 13px;text-transform:uppercase;box-shadow:0 0 0 2px rgba(226,52,52,.04)}
+#board-bringItems:focus{outline:2px solid rgba(210,37,37,.18);outline-offset:1px;border-color:#bf1b1b!important}
+#board-bringItems::placeholder{color:#cb9696;font-weight:600;text-transform:none}
+.fboard-bring-form>small{font-size:10px;color:#bd5656;line-height:1.45}
+.fboard-item .fboard-item-bring{max-width:100%}
+@media(max-width:650px){.fboard-bring-form{padding:11px}.fboard-bring-label{align-items:flex-start}.fboard-bring-warning{font-size:9px;white-space:normal}#board-bringItems{font-size:13px!important}}
+@media print{.fboard-item-bring{background:#fff0f0!important;color:#b71717!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
