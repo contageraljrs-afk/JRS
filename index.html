@@ -1065,7 +1065,7 @@ function clientResults(){
 function refreshClients(){const el=document.getElementById('clientsResults');if(el)el.innerHTML=clientResults()}
 function clients(){
  return header('Carteira de clientes','Cadastre pessoas físicas e jurídicas com CPF ou CNPJ, inclusive no novo formato alfanumérico.','Novo cliente',"openClient()")
- +'<div class="credit-clients-shortcut"><div><b>Consulta e análise de crédito</b><small>Histórico, indicadores e pareceres internos vinculados ao cadastro de clientes.</small></div><button class="btn primary" type="button" onclick="go(\'credit\')">Abrir consultas de crédito ↗</button></div>'
+ +'<div class="credit-clients-shortcut"><div><b>Consulta e análise de crédito</b><small>Consulte score, protestos e restrições pelo CPF ou CNPJ, após conectar o serviço oficial.</small></div><button class="btn primary" type="button" onclick="go(\'credit\')">Abrir consultas de crédito ↗</button></div>'
  +'<div class="filters"><input class="search" placeholder="Buscar por cliente, CPF, CNPJ, telefone ou cidade..." aria-label="Pesquisar clientes" value="'+esc(filterText)+'" oninput="filterText=this.value;refreshClients()"></div>'
  +'<div id="clientsResults">'+clientResults()+'</div>'
  +'<p class="muted" style="font-size:11px;margin-top:12px">Os registros já existentes continuam disponíveis. Complete o CPF ou CNPJ clicando em Editar. Dados desta demonstração são mantidos neste navegador.</p>';
