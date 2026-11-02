@@ -100,3 +100,12 @@ button.fboard-item:hover{filter:brightness(.97);box-shadow:0 1px 8px #272f1b13}
 .fboard-item .fboard-item-bring{max-width:100%}
 @media(max-width:650px){.fboard-bring-form{padding:11px}.fboard-bring-label{align-items:flex-start}.fboard-bring-warning{font-size:9px;white-space:normal}#board-bringItems{font-size:13px!important}}
 @media print{.fboard-item-bring{background:#fff0f0!important;color:#b71717!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+/* Destaque do dia escolhido no painel de disponibilidade */
+.fboard-date-head>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:0;background:transparent;color:inherit;cursor:pointer;width:100%;padding:2px 4px;min-height:39px;font-family:inherit}
+.fboard-date-head>button:hover{background:rgba(245,213,56,.12);border-radius:5px}
+.fboard-date-head.fboard-is-selected{background:#465127;border-bottom-color:#f9dc44;box-shadow:inset 0 -2px 0 #ffdb36}
+.fboard-date-head.fboard-is-selected>button{color:#ffe98e}
+.fboard-date-head.fboard-is-selected span{color:#fff1c7}
+.fboard-date-head.fboard-is-selected>button:focus-visible{outline:2px solid #f4cd45;outline-offset:-2px}
+@media print{.fboard-date-head>button{color:inherit!important;min-height:auto}}
