@@ -134,7 +134,7 @@ function render(isHome){
 function move(offset){referenceWeek=new Date(referenceWeek.getFullYear(),referenceWeek.getMonth(),referenceWeek.getDate()+7*offset);renderPage()}
 function today(){referenceWeek=monday(new Date());renderPage()}
 function weekend(value){showWeekend=Boolean(value);renderPage()}
-function renderPage(){render();}
+function renderPage(){if(typeof window.render==='function')window.render();}
 function openEntry(rowId,date,id){
  if(!requireEdit('operations'))return;
  ensureData();
