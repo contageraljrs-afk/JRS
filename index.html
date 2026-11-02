@@ -330,6 +330,12 @@ input::placeholder,textarea::placeholder{color:#a4afa6}
 @media(max-width:1170px){.home-agenda-layout{grid-template-columns:1fr}.agenda-upcoming-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.agenda-event{margin-top:4px}}
 @media(max-width:650px){.home-agenda-heading{align-items:flex-start}.agenda-grid{gap:3px}.agenda-cell{min-height:66px;padding:4px 3px}.agenda-day{width:20px;height:20px;font-size:10px}.agenda-cell-event{font-size:7px;border-left-width:2px;padding:2px}.agenda-weekday{font-size:9px}.agenda-upcoming-list{display:block}.agenda-calendar-top h3{font-size:16px}.home-agenda-heading h2{font-size:21px}}
 </style>
+<script src="./fotos-equipamentos.js"></script>
+<style id="jrs-photo-live-style">
+.equipment-cover{overflow:hidden}.equipment-cover .jrs-card-photo{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;z-index:1}.equipment-cover.jrs-has-photo>.equip-emoji{visibility:hidden}.equipment-cover .status{z-index:2}.equipment-cover.jrs-has-photo:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 55%);z-index:1;pointer-events:none}
+.jrs-photo-editor{border:1px solid #dfe7de;border-radius:12px;padding:16px;background:#f8faf7;margin-top:7px}.jrs-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.jrs-photo-head h3{font-size:15px;color:#263a2a;margin-bottom:5px}.jrs-photo-head small{font-size:11px;color:#839285}.jrs-photo-head label{cursor:pointer}.jrs-photo-help{font-size:11px;color:#869487;margin:12px 0}.jrs-photo-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}.jrs-photo-thumb{border:1px solid #e0e7df;border-radius:9px;background:#fff;overflow:hidden}.jrs-photo-thumb img{height:112px;width:100%;object-fit:cover;display:block}.jrs-photo-actions{display:grid;gap:5px;padding:7px}.jrs-photo-actions .btn{width:100%;white-space:normal}.jrs-photo-empty{grid-column:1/-1;border:1px dashed #cbd6ca;padding:20px;border-radius:8px;color:#869587;font-size:12px;text-align:center}.jrs-photo-message{font-size:11px;color:#627a66;margin:11px 0 0}
+@media(max-width:620px){.jrs-photo-thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}.jrs-photo-head label{width:100%}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -422,7 +428,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&document.getElementById('dialog')?.classList.contains('open'))closeDialog();
 });
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';vehicleTypeFilter='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)()}
+function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
 
 
 /* jrs-home-calendar-v1: agenda de reservas e operações em destaque na página inicial */
@@ -768,7 +774,19 @@ function equipment(){
  +'<div class="filters"><input class="search" placeholder="Buscar equipamento, placa, veículo ou modelo..." value="'+esc(filterText)+'" oninput="filterText=this.value;refreshEquipment()"><select aria-label="Filtrar categoria e tipo" onchange="filterCategory=this.value;refreshEquipment()"><option value="">Todas as categorias e tipos</option>'+filters.map(c=>'<option value="'+esc(c)+'" '+(filterCategory===c?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></div>'
  +'<div id="equipmentResults">'+unifiedEquipmentItems()+'</div>';
 }
-function refreshEquipment(){const target=document.getElementById('equipmentResults');if(target)target.innerHTML=unifiedEquipmentItems()}
+function refreshEquipment(){const target=document.getElementById('equipmentResults');if(target){target.innerHTML=unifiedEquipmentItems();refreshEquipmentPhotos()}}
+
+/* jrs-photo-app-bridge-v1: integração dos arquivos locais à interface da frota */
+const equipmentCover=id=>db.equipment.find(e=>e.id===id)?.photoCoverId||'';
+function equipmentSetCover(id,photoId){
+ const item=db.equipment.find(e=>e.id===id);
+ if(!item)return;
+ item.photoCoverId=photoId;save();
+}
+function refreshEquipmentPhotos(){
+ if(window.JRSPhotos)window.JRSPhotos.hydrate(equipmentCover);
+}
+
 function unifiedEquipmentItems(){
  const normalize=str=>String(str||'').toLocaleLowerCase('pt-BR');
  const original=db.equipment.filter(e=>(!filterText||normalize([e.name,e.category,e.serial,e.driver,e.driverNotes,e.equipmentDescription].join(' ')).includes(normalize(filterText)))&&(!filterCategory||e.category===filterCategory||(e.vehicleId&&vehicleType(db.vehicles.find(v=>v.id===e.vehicleId))===filterCategory)));
@@ -780,7 +798,7 @@ function unifiedEquipmentItems(){
  const icons={'Guindastes':'🏗️','Caminhões Munck':'🚛','Empilhadeiras':'🏭','Plataformas Elevatórias':'⚙️','Contêineres':'📦','Guinchos':'🚒','Retroescavadeiras':'🚜'};
  const equipments=original.map(e=>{
   const linked=e.vehicleId?db.vehicles.find(v=>v.id===e.vehicleId):null;
-  return '<div class="equipment-card"><div class="equipment-cover"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span><span>Responsável: '+esc(linked?.driver||e.driver||'Não definido')+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button>':'')+'</div></div></div></div>'
+  return '<div class="equipment-card"><div class="equipment-cover" data-eq-photo="'+esc(e.id)+'"><div class="equip-emoji">'+(icons[e.category]||'⚙️')+'</div>'+status(e.status)+'</div><div class="equipment-body"><small>'+esc(e.id)+' · '+esc(e.category)+(linked?' · Veículo vinculado':'')+'</small><h3>'+esc(e.name)+'</h3><div class="equip-meta"><span>'+ (linked?'Placa: '+esc(linked.plate):'Capacidade: '+esc(e.capacity||'A cadastrar'))+'</span><span>Responsável: '+esc(linked?.driver||e.driver||'Não definido')+'</span></div><div class="equip-foot"><span class="muted">Catálogo de locação</span><div class="actions">'+(linked&&canView('vehicles')?'<button class="btn tiny" onclick="viewVehicle(\''+esc(linked.id)+'\')">Ver veículo</button>':'')+(canEdit('equipment')?'<button class="btn tiny" onclick="openEquipment(\''+esc(e.id)+'\')">Editar</button>':'')+'</div></div></div></div>'
  });
  const cars=fleet.map(v=>{
   const t=vehicleType(v);
@@ -970,22 +988,35 @@ function closeDialog(){document.getElementById('dialog').classList.remove('open'
 const field=(label,name,type='text',required=true,options)=>'<div class="field"><label for="f-'+name+'">'+label+'</label>'+(options?'<select id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>':type==='textarea'?'<textarea id="f-'+name+'" name="'+name+'" '+(required?'required':'')+'></textarea>':'<input id="f-'+name+'" name="'+name+'" type="'+type+'" '+(required?'required':'')+'></div>');
 const form=(title,fields,cb)=>openDialog(title,'<form id="entryForm" class="form-grid">'+fields+'<div class="span2 actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
 function bindForm(fn){document.getElementById('entryForm').addEventListener('submit',e=>{e.preventDefault();let f=Object.fromEntries(new FormData(e.target));fn(f)})}
+
 function openEquipment(id){
  if(!requireEdit('equipment'))return;
- let e=db.equipment.find(x=>x.id===id);
+ const e=id?db.equipment.find(x=>x.id===id):null;
+ if(id&&!e)return alert('Equipamento não encontrado.');
  openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'
  +field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)
  +field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])
  +field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)
- +field('Motorista / responsável','driver','text',false)
- +field('Uso / observação','driverNotes','text',false)
+ +field('Motorista / responsável','driver','text',false)+field('Uso / observação','driverNotes','text',false)
  +field('Descrição operacional','equipmentDescription','textarea',false)
- +'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button></div></form>');
- if(e)for(let k of ['name','category','status','capacity','serial','driver','driverNotes','equipmentDescription'])document.getElementsByName(k)[0].value=e[k]||'';
+ +'<div class="span2 jrs-photo-editor" id="recordPhotoGallery"></div>'
+ +'<div class="span2 actions"><button class="btn primary" type="submit">Salvar equipamento</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
+ if(e){
+  for(const k of ['name','category','status','capacity','serial','driver','driverNotes','equipmentDescription'])document.getElementsByName(k)[0].value=e[k]||'';
+  if(window.JRSPhotos)window.JRSPhotos.draw(e.id,equipmentCover,equipmentSetCover);
+ }else document.getElementById('recordPhotoGallery').innerHTML='<div class="note">Salve o equipamento uma vez para poder adicionar fotos.</div>';
  bindForm(f=>{
-  if(e){Object.assign(e,f);const v=e.vehicleId?db.vehicles.find(x=>x.id===e.vehicleId):null;if(v){v.driver=f.driver;v.driverNotes=f.driverNotes;v.equipmentDescription=f.equipmentDescription;}}
-  else db.equipment.push({id:uid('EQ'),...f});
+  let created=null;
+  if(e){
+   Object.assign(e,f);
+   const vehicle=e.vehicleId?db.vehicles.find(x=>x.id===e.vehicleId):null;
+   if(vehicle){vehicle.driver=f.driver;vehicle.driverNotes=f.driverNotes;vehicle.equipmentDescription=f.equipmentDescription;}
+  }else{
+   created={id:uid('EQ'),...f};
+   db.equipment.push(created);
+  }
   save();closeDialog();render();
+  if(created)openEquipment(created.id);
  });
 }
 function openQuote(){if(!requireEdit('quotes'))return;openDialog('Nova solicitação de orçamento','<form id="entryForm" class="form-grid">'+field('Nome / razão social','client')+field('Equipamento desejado','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Data prevista','date','date')+field('Valor proposto (R$)','value','number',false)+field('Descrição do serviço','description','textarea')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar solicitação</button></div></form>');bindForm(f=>{db.quotes.push({...f,id:uid('ORC'),status:'Novo',value:Number(f.value)||0});save();closeDialog();render();alert('Solicitação recebida! Nossa equipe comercial entrará em contato para apresentar a melhor solução para sua operação. (Apenas demonstração local.)')})}
