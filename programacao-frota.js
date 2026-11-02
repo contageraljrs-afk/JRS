@@ -73,7 +73,9 @@ function cellCard(record,editable){
  const prefix=record.startTime||'';
  const text='<span class="fboard-item-title">'+esc(title)+'</span>'+
   (detail?'<span class="fboard-item-detail">'+esc(detail)+'</span>':'')+
-  (record.driver?'<span class="fboard-item-driver">◉ '+esc(record.driver)+'</span>':'')+
+  (record.driver?'<span class="fboard-item-driver">◉ Motorista: '+esc(record.driver)+'</span>':'')+
+  (record.helper?'<span class="fboard-item-helper">◉ Ajudante: '+esc(record.helper)+'</span>':'')+
+  (record.bringItems?'<span class="fboard-item-bring"><span class="fboard-bring-icon" aria-hidden="true">⚠</span><span><strong>O que precisa levar:</strong> '+esc(record.bringItems)+'</span></span>':'')+
   (prefix?'<span class="fboard-item-time">'+esc(prefix)+(record.endTime?'–'+esc(record.endTime):'')+'</span>':'');
  if(record.type==='manual'){
   return editable?'<button type="button" class="fboard-item '+safeStatusClass(record.status)+'" title="'+esc(record.status)+' · Editar" onclick="JRSBoard.edit(\''+esc(record.rowId)+'\',\''+esc(record.date)+'\',\''+esc(record.id)+'\')">'+text+'</button>':
@@ -161,6 +163,9 @@ function openEntry(rowId,date,id){
  field('location','Local / obra',defaults.location,'text','maxlength="150" placeholder="Cidade, endereço ou obra"')+
  field('description','Serviço / programação',defaults.description,'text','maxlength="180" placeholder="Içamento, transporte, remoção..."')+
  field('driver','Motorista / operador',defaults.driver??autofillDriver,'text','maxlength="100"')+
+ field('helper','Ajudante',defaults.helper||'','text','maxlength="120" placeholder="Nome do ajudante (opcional)"')+
+ '<div class="field span2 fboard-bring-form"><div class="fboard-bring-label"><label for="board-bringItems">O que precisa levar</label><span class="fboard-bring-warning">⚠ INFORMAÇÃO IMPORTANTE</span></div>'+
+ '<textarea id="board-bringItems" name="bringItems" maxlength="350" rows="2" placeholder="Ex.: PEGA PALLET, LEVAR CINTAS OU MANILHAS">'+esc(defaults.bringItems||'')+'</textarea><small>Esta instrução aparecerá em vermelho na programação semanal.</small></div>'+
  field('startTime','Saída / início',defaults.startTime,'time')+
  field('endTime','Retorno / fim',defaults.endTime,'time')+
  '<div class="field span2"><label for="board-notes">Observações e instruções</label><textarea id="board-notes" name="notes" maxlength="800" placeholder="Informações que ficariam escritas na lousa...">'+esc(defaults.notes||'')+'</textarea></div>'+
@@ -178,7 +183,7 @@ function openEntry(rowId,date,id){
    if(!rowById(data.rowId))throw Error('Selecione uma linha válida da frota.');
    if(!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||Number.isNaN(new Date(data.date+'T12:00:00').getTime()))throw Error('Data inválida.');
    if(!STATUSES.includes(data.status))throw Error('Situação inválida.');
-   for(const key of ['client','location','description','driver','notes'])data[key]=String(data[key]||'').trim();
+   for(const key of ['client','location','description','driver','helper','bringItems','notes'])data[key]=String(data[key]||'').trim();
    if(!['Manutenção','Indisponível','Folga','Feriado'].includes(data.status)&&!data.client&&!data.location&&!data.description)throw Error('Informe o cliente, local ou serviço para programar.');
    if(data.startTime&&data.endTime&&data.endTime<data.startTime)throw Error('O horário final não pode ser anterior ao horário inicial.');
    if(existing)Object.assign(existing,data,{updatedAt:new Date().toISOString()});
