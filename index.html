@@ -361,6 +361,13 @@ h1,h2,h3,h4,.dashboard-head h1,.dash-hero h2{font-weight:800;letter-spacing:-.75
 #jrs-auth .auth-desc{line-height:1.7}
 @media(max-width:760px){.sidebar .nav button{letter-spacing:0}}
 </style>
+<style id="jrs-client-documents-style">
+.client-doc-chip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:750;font-variant-numeric:tabular-nums;color:#2c3c31}
+.client-doc-chip small{background:#eef3e8;border:1px solid #d6e1cf;color:#51674b;font-size:9px;padding:4px 5px;border-radius:5px;letter-spacing:.5px}
+.client-doc-missing{font-size:11px;color:#ad7664;font-weight:600}
+#client-form-error{color:#a3372f;font-size:12px;font-weight:750;line-height:1.4;min-height:4px}
+#client-doc-hint{font-size:11px;color:#7b897e}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1002,7 +1009,63 @@ function printProposal(id){
 function bookings(){let now=new Date(),year=now.getFullYear(),month=now.getMonth(),first=new Date(year,month,1).getDay(),count=new Date(year,month+1,0).getDate();let dates=Array.from({length:first},()=>'<div></div>');for(let d=1;d<=count;d++){let iso=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),overlaps=db.bookings.filter(b=>iso>=b.start&&iso<=b.end);dates.push('<div class="day"><b>'+d+'</b>'+overlaps.map(b=>'<small title="'+esc(b.client)+'">'+esc(b.equipment.slice(0,18))+'</small>').join('')+'</div>')}
 return header('Agenda de locações','Controle de períodos reservados e conflitos de agenda.','Nova reserva',"openBooking()")+'<div class="duo"><div class="card"><div class="card-head"><h3>'+now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</h3><span class="tag">Visão mensal</span></div><div class="calendar">'+['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>'<div class="dow">'+x+'</div>').join('')+dates.join('')+'</div></div><div class="card"><div class="card-head"><h3>Próximas reservas</h3></div>'+db.bookings.map(b=>'<div class="progress-item"><b>'+esc(b.equipment)+'</b><p class="muted">'+esc(b.client)+'<br>'+fmt(b.start)+' a '+fmt(b.end)+'</p>'+status(b.status)+'</div>').join('')+'</div></div>'+table(['Reserva','Equipamento','Cliente','Início','Fim','Status'],db.bookings.map(b=>'<tr><td>'+esc(b.id)+'</td><td>'+esc(b.equipment)+'</td><td>'+esc(b.client)+'</td><td>'+fmt(b.start)+'</td><td>'+fmt(b.end)+'</td><td>'+status(b.status)+'</td></tr>'))}
 function operations(){return header('Central de operações','Acompanhe serviços, operadores e etapas operacionais.','Nova operação',"openOperation()")+table(['OS','Cliente','Equipamento','Local','Data','Responsável','Status','Ação'],db.operations.slice().reverse().map(o=>'<tr><td><b>'+esc(o.id)+'</b></td><td>'+esc(o.client)+'</td><td>'+esc(o.equipment)+'</td><td>'+esc(o.location)+'</td><td>'+fmt(o.date)+'</td><td>'+esc(o.operator)+'</td><td>'+status(o.status)+'</td><td><button class="btn tiny" onclick="advanceOperation(\''+esc(o.id)+'\')">Avançar</button></td></tr>'))}
-function clients(){return header('Carteira de clientes','Dados de cadastro e histórico comercial.','Novo cliente',"openClient()")+table(['Código','Cliente','Telefone','E-mail','Cidade','Solicitações'],db.clients.map(c=>'<tr><td>'+esc(c.id)+'</td><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.phone)+'</td><td>'+esc(c.email)+'</td><td>'+esc(c.city)+'</td><td>'+db.quotes.filter(q=>q.client===c.name).length+'</td></tr>'))}
+
+/* jrs-client-documents-v1: CPF, CNPJ tradicional e CNPJ alfanumérico. */
+function cleanClientDoc(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)}
+function clientDocKind(value){
+ const clean=cleanClientDoc(value);
+ return /^[0-9]{0,11}$/.test(clean)?'CPF':'CNPJ';
+}
+function formatClientDoc(value){
+ const code=cleanClientDoc(value);
+ if(!code)return '';
+ if(clientDocKind(code)==='CPF'){
+  return code.slice(0,3)+(code.length>3?'.'+code.slice(3,6):'')+(code.length>6?'.'+code.slice(6,9):'')+(code.length>9?'-'+code.slice(9,11):'');
+ }
+ return code.slice(0,2)+(code.length>2?'.'+code.slice(2,5):'')+(code.length>5?'.'+code.slice(5,8):'')+(code.length>8?'/'+code.slice(8,12):'')+(code.length>12?'-'+code.slice(12,14):'');
+}
+function clientDocCheck(value){
+ const raw=cleanClientDoc(value);
+ if(/^[0-9]{11}$/.test(raw)){
+  if(/^([0-9])\1{10}$/.test(raw))return false;
+  const dv=(length)=>{let sum=0;for(let i=0;i<length;i++)sum+=Number(raw[i])*(length+1-i);const r=(sum*10)%11;return r===10?0:r};
+  return dv(9)===Number(raw[9])&&dv(10)===Number(raw[10]);
+ }
+ if(!/^[A-Z0-9]{12}[0-9]{2}$/.test(raw))return false;
+ if(/^([A-Z0-9])\1{14}$/.test(raw))return false;
+ const calc=(text,weights)=>{
+  const total=[...text].reduce((sum,ch,i)=>sum+(ch.charCodeAt(0)-48)*weights[i],0);
+  const mod=total%11;
+  return mod<2?0:11-mod;
+ };
+ const first=calc(raw.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]);
+ const second=calc(raw.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]);
+ return raw[12]===String(first)&&raw[13]===String(second);
+}
+function clientDocumentOf(client){return client.document||client.cpf||client.cnpj||''}
+function clientDocumentInput(element){
+ element.value=formatClientDoc(element.value);
+ const helper=document.getElementById('client-doc-hint');
+ if(helper)helper.textContent=clientDocKind(element.value)==='CNPJ'?'CNPJ: aceita letras nos 12 primeiros caracteres e 2 dígitos verificadores.':'CPF: 11 dígitos; CNPJ: 14 caracteres.';
+ const error=document.getElementById('client-form-error');
+ if(error)error.textContent='';
+}
+function clientResults(){
+ const terms=filterText.trim().toLowerCase();
+ const items=(db.clients||[]).filter(c=>!terms||[c.name,c.phone,c.email,c.city,clientDocumentOf(c)].join(' ').toLowerCase().includes(terms)||cleanClientDoc(clientDocumentOf(c)).toLowerCase().includes(cleanClientDoc(terms).toLowerCase()));
+ return table(['Código','Cliente','CPF / CNPJ','Telefone','E-mail','Cidade','Solicitações','Ações'],items.map(c=>{
+  const doc=clientDocumentOf(c);
+  return '<tr><td>'+esc(c.id)+'</td><td><b>'+esc(c.name)+'</b></td><td>'+(doc?'<span class="client-doc-chip"><small>'+clientDocKind(doc)+'</small> '+esc(formatClientDoc(doc))+'</span>':'<span class="client-doc-missing">Não informado</span>')+'</td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.email||'—')+'</td><td>'+esc(c.city||'—')+'</td><td>'+db.quotes.filter(q=>q.client===c.name).length+'</td><td>'+(canEdit('clients')?'<button class="btn tiny" type="button" onclick="openClient(\''+esc(c.id)+'\')">Editar</button>':'<span class="muted">Somente leitura</span>')+'</td></tr>';
+ }));
+}
+function refreshClients(){const el=document.getElementById('clientsResults');if(el)el.innerHTML=clientResults()}
+function clients(){
+ return header('Carteira de clientes','Cadastre pessoas físicas e jurídicas com CPF ou CNPJ, inclusive no novo formato alfanumérico.','Novo cliente',"openClient()")
+ +'<div class="filters"><input class="search" placeholder="Buscar por cliente, CPF, CNPJ, telefone ou cidade..." aria-label="Pesquisar clientes" value="'+esc(filterText)+'" oninput="filterText=this.value;refreshClients()"></div>'
+ +'<div id="clientsResults">'+clientResults()+'</div>'
+ +'<p class="muted" style="font-size:11px;margin-top:12px">Os registros já existentes continuam disponíveis. Complete o CPF ou CNPJ clicando em Editar. Dados desta demonstração são mantidos neste navegador.</p>';
+}
+
 function finance(){let inc=db.finance.filter(x=>x.type==='Receita').reduce((a,b)=>a+Number(b.value),0),exp=db.finance.filter(x=>x.type==='Despesa').reduce((a,b)=>a+Number(b.value),0);
 return header('Gestão financeira','Lançamentos manuais de demonstração. Não emite documentos fiscais.','Novo lançamento',"openFinance()")+'<div class="stats"><div class="card"><small>Receitas registradas</small><div class="bigmetric" style="color:var(--green)">'+money(inc)+'</div></div><div class="card"><small>Despesas registradas</small><div class="bigmetric" style="color:var(--red)">'+money(exp)+'</div></div><div class="card"><small>Saldo demonstrativo</small><div class="bigmetric">'+money(inc-exp)+'</div></div></div>'+table(['Lançamento','Descrição','Tipo','Valor','Data'],db.finance.slice().reverse().map(f=>'<tr><td>'+esc(f.id)+'</td><td>'+esc(f.description)+'</td><td>'+status(f.type)+'</td><td>'+money(f.value)+'</td><td>'+fmt(f.date)+'</td></tr>'))}
 function intelligence(){let total=db.quotes.length,won=db.quotes.filter(q=>['Aprovado','Concluído'].includes(q.status)).length;let cap=Math.max(1,...cats.map(c=>db.equipment.filter(e=>e.category===c).length));return header('JRS Intelligence','Indicadores calculados com base nos registros locais.','','')+'<div class="stats"><div class="card"><small>Solicitações recebidas</small><div class="bigmetric">'+total+'</div></div><div class="card"><small>Conversão comercial</small><div class="bigmetric">'+Math.round(100*won/Math.max(1,total))+'%</div></div><div class="card"><small>Frota cadastrada</small><div class="bigmetric">'+db.equipment.length+'</div></div></div><div class="duo"><div class="card"><h3>Distribuição de equipamentos</h3>'+cats.map(c=>{let n=db.equipment.filter(e=>e.category===c).length;return '<div class="progress-item"><div class="progress-label"><span>'+c+'</span><b>'+n+'</b></div><div class="track"><div class="fill" style="width:'+Math.round(n/cap*100)+'%"></div></div></div>'}).join('')+'</div><div class="card"><h3>Alertas inteligentes</h3><div class="progress-item">◈ '+db.quotes.filter(q=>q.status==='Novo').length+' novas solicitações aguardando análise</div><div class="progress-item">◈ '+db.equipment.filter(e=>e.status==='Manutenção').length+' equipamentos em manutenção</div><div class="progress-item">◈ '+db.bookings.length+' reservas cadastradas</div><div class="note">Os alertas são regras demonstrativas. Não há IA externa conectada.</div></div></div>'}
@@ -1087,7 +1150,40 @@ function advanceQuote(id){if(!requireEdit('quotes'))return;let q=db.quotes.find(
 function openBooking(){if(!requireEdit('bookings'))return;openDialog('Criar reserva','<form id="entryForm" class="form-grid">'+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Cliente','client')+field('Data inicial','start','date')+field('Data final','end','date')+'<div class="span2"><div class="note">O sistema bloqueia conflitos com outras reservas registradas neste navegador.</div></div><div class="span2 actions"><button class="btn primary" type="submit">Confirmar reserva</button></div></form>');bindForm(f=>{if(f.end<f.start)return alert('A data final deve ser posterior ou igual à inicial.');if(db.bookings.some(b=>b.equipment===f.equipment&&b.start<=f.end&&b.end>=f.start&&b.status==='Confirmada'))return alert('Conflito: já existe uma reserva confirmada para esse equipamento nesse período.');db.bookings.push({...f,id:uid('RS'),status:'Confirmada'});save();closeDialog();render()})}
 function openOperation(){if(!requireEdit('operations'))return;openDialog('Nova operação','<form id="entryForm" class="form-grid">'+field('Cliente','client')+field('Equipamento','equipment','text',true,db.equipment.map(e=>e.name).length?db.equipment.map(e=>e.name):['A definir'])+field('Local da operação','location')+field('Operador responsável','operator')+field('Data da operação','date','date')+field('Observações','notes','textarea',false)+'<div class="span2 actions"><button class="btn primary" type="submit">Criar operação</button></div></form>');bindForm(f=>{db.operations.push({...f,id:uid('OP'),status:'Agendada'});save();closeDialog();render()})}
 function advanceOperation(id){if(!requireEdit('operations'))return;let o=db.operations.find(x=>x.id===id),s=['Agendada','Em andamento','Concluída'];o.status=s[Math.min(s.length-1,s.indexOf(o.status)+1)];save();render()}
-function openClient(){if(!requireEdit('clients'))return;openDialog('Novo cliente','<form id="entryForm" class="form-grid">'+field('Razão social / nome','name')+field('Telefone','phone')+field('E-mail','email','email')+field('Cidade','city')+'<div class="span2 actions"><button class="btn primary" type="submit">Cadastrar cliente</button></div></form>');bindForm(f=>{db.clients.push({...f,id:uid('CL')});save();closeDialog();render()})}
+
+function openClient(id){
+ if(!requireEdit('clients'))return;
+ const existing=id?db.clients.find(c=>c.id===id):null;
+ if(id&&!existing)return alert('Cliente não encontrado.');
+ const doc=clientDocumentOf(existing||{});
+ openDialog(existing?'Editar cliente · '+existing.name:'Novo cliente',
+ '<form id="clientForm" class="form-grid">'
+ +'<div class="field span2"><label for="clientName">Nome completo / Razão social *</label><input id="clientName" name="name" type="text" maxlength="160" required value="'+esc(existing?.name||'')+'" placeholder="Nome ou razão social"></div>'
+ +'<div class="field span2"><label for="clientDocument">CPF ou CNPJ *</label><input id="clientDocument" name="document" type="text" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" required value="'+esc(formatClientDoc(doc))+'" placeholder="000.000.000-00 ou 00.000.000/0000-00" oninput="clientDocumentInput(this)"><small id="client-doc-hint">Aceita CPF, CNPJ tradicional e CNPJ alfanumérico.</small></div>'
+ +'<div class="field"><label for="clientPhone">Telefone</label><input id="clientPhone" name="phone" type="tel" maxlength="30" value="'+esc(existing?.phone||'')+'" placeholder="(19) 99999-9999"></div>'
+ +'<div class="field"><label for="clientEmail">E-mail</label><input id="clientEmail" name="email" type="email" value="'+esc(existing?.email||'')+'" placeholder="contato@empresa.com"></div>'
+ +'<div class="field span2"><label for="clientCity">Cidade</label><input id="clientCity" name="city" type="text" maxlength="100" value="'+esc(existing?.city||'')+'"></div>'
+ +'<div class="span2" role="alert" id="client-form-error"></div>'
+ +'<div class="span2 actions"><button class="btn primary" type="submit">'+(existing?'Salvar alterações':'Cadastrar cliente')+'</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
+ document.getElementById('clientForm').addEventListener('submit',ev=>{
+  ev.preventDefault();
+  const error=document.getElementById('client-form-error');
+  try{
+   const data=Object.fromEntries(new FormData(ev.target));
+   data.name=String(data.name||'').trim();
+   data.document=cleanClientDoc(data.document);
+   data.phone=String(data.phone||'').trim();
+   data.email=String(data.email||'').trim();
+   data.city=String(data.city||'').trim();
+   if(!data.name)throw Error('Informe o nome ou a razão social.');
+   if(!clientDocCheck(data.document))throw Error('CPF ou CNPJ inválido. Confira os caracteres e os dígitos verificadores.');
+   if(db.clients.some(c=>c.id!==id&&cleanClientDoc(clientDocumentOf(c))===data.document))throw Error('Já existe um cliente cadastrado com este CPF ou CNPJ.');
+   if(existing){Object.assign(existing,data);delete existing.cpf;delete existing.cnpj;}
+   else db.clients.push({...data,id:uid('CL')});
+   save();closeDialog();render();
+  }catch(e){error.textContent=e.message||'Não foi possível salvar o cliente.';}
+ });
+}
 function openFinance(){if(!requireEdit('finance'))return;openDialog('Novo lançamento financeiro','<form id="entryForm" class="form-grid">'+field('Descrição','description')+field('Tipo de lançamento','type','text',true,['Receita','Despesa'])+field('Valor (R$)','value','number')+field('Data','date','date')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar lançamento</button></div></form>');bindForm(f=>{db.finance.push({...f,id:uid('FN'),value:Number(f.value)});save();closeDialog();render()})}
 
 /* Gerenciamento de colaboradores - armazenamento local demonstrativo */
