@@ -38,3 +38,12 @@
 .credit-clients-shortcut b{display:block;font-size:13px;color:#2c422e}
 .credit-clients-shortcut small{display:block;font-size:11px;color:#778a7a;margin-top:5px}
 @media(max-width:740px){.credit-simple-form{flex-direction:column}.credit-consult-button{min-height:48px}.credit-result-grid{grid-template-columns:1fr}.credit-result-card{min-height:112px}.credit-result-card strong{margin-top:10px}.credit-input-area input{font-size:17px!important}.credit-simple-results{padding:16px}}
+
+.credit-provider-access{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid #e2e9dd;border-radius:12px;padding:20px 22px;margin-bottom:22px;box-shadow:0 7px 19px rgba(17,50,26,.04)}
+.credit-provider-access>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.credit-provider-access small{font-size:10px;font-weight:850;letter-spacing:1.5px;color:#a38829}
+.credit-provider-access b{font-size:19px;letter-spacing:-.45px;color:#26402e}
+.credit-provider-access p{font-size:11px;color:#7a897b;line-height:1.5;margin:0;max-width:510px}
+.credit-provider-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none!important;white-space:nowrap;background:#1e3929!important;color:#fff!important;border-color:#1e3929!important;padding:12px 16px!important;min-height:43px}
+.credit-provider-link:hover{background:#32523b!important;color:#fff!important}
+@media(max-width:680px){.credit-provider-access{align-items:stretch;padding:16px}.credit-provider-link{width:100%}}
