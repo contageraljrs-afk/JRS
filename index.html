@@ -1365,7 +1365,7 @@ body.jrs-unlocked #jrs-auth{display:none!important}
       <label for="jrs-auth-email">E-mail do administrador</label><input type="email" required id="jrs-auth-email" name="email" maxlength="160" autocomplete="username" placeholder="seuemail@empresa.com">
       <label for="jrs-auth-password">Senha</label><div class="password-line"><input type="password" minlength="10" required id="jrs-auth-password" name="password" autocomplete="current-password" placeholder="Digite sua senha"><button type="button" class="auth-eye" id="jrs-auth-toggle" aria-label="Mostrar senha">Mostrar</button></div>
       <div id="jrs-auth-confirm-box" style="display:none"><label for="jrs-auth-confirm">Confirme sua senha</label><input type="password" id="jrs-auth-confirm" name="confirm" autocomplete="new-password" placeholder="Repita sua senha"></div>
-      <label class="auth-remember-label" for="jrs-auth-remember"><input type="checkbox" id="jrs-auth-remember"><span><strong>Manter conectado neste dispositivo</strong><small>Acesso automático por até 30 dias neste navegador. Use apenas no seu aparelho.</small></span></label>
+      <label class="auth-remember-label" for="jrs-auth-remember"><input type="checkbox" id="jrs-auth-remember"><span><strong>Salvar senha e entrar automaticamente</strong><small>Marque para abrir o JRS sem digitar e-mail ou senha novamente por até 30 dias neste navegador. O acesso é salvo, não a senha em texto aberto. Use apenas no seu dispositivo.</small></span></label>
       <button type="submit" class="auth-submit" id="jrs-auth-submit">ENTRAR NO PAINEL →</button>
       <div class="auth-message" role="alert" id="jrs-auth-error"></div>
     </form>
@@ -1378,6 +1378,7 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 (function(){
 "use strict";
 const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
+/* jrs-salvar-senha-login-v2: persistência local de sessão, sem salvar senha legível. */
 const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30;
 const MODULES=["dashboard","equipment","vehicles","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
 const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","Administrador"];
@@ -1440,7 +1441,7 @@ if(old.id===logged?.id&&(!rec.active||rec.role!=="Administrador"))throw Error("N
 all[i]={...old,...rec};saveUsers(all);return safeUser(all[i])
 }
 async function resetPassword(id,pass){assertAdmin();const all=getUsers(),i=all.findIndex(u=>u.id===id);if(i<0)throw Error("Funcionário não encontrado.");const sec=await credentials(pass);all[i]={...all[i],...sec,mustChange:true};saveUsers(all);return true}
-window.JRSAccess={preset,canView,canEdit,list:()=>getUsers().map(safeUser),root:()=>safeUser(getRoot()),current:()=>safeUser(getLive()),create,update,resetPassword,logout:lock};
+window.JRSAccess={preset,canView,canEdit,list:()=>getUsers().map(safeUser),root:()=>safeUser(getRoot()),current:()=>safeUser(getLive()),create,update,resetPassword,logout:lock,remembered:()=>Boolean(rememberedUser())};
 function title(k,t,d,b){document.getElementById("jrs-auth-mode").textContent=k;document.getElementById("jrs-auth-title").textContent=t;document.getElementById("jrs-auth-description").textContent=d;document.getElementById("jrs-auth-submit").textContent=b;}
 function showError(s){err.textContent=s||""}
 function showLogin(){
@@ -1456,7 +1457,7 @@ emailInput.value=localStorage.getItem(LAST_EMAIL_KEY)||"";
 rememberInput.checked=false;
 pwdInput.value="";confirmInput.value="";pwdInput.type="password";document.getElementById("jrs-auth-toggle").textContent="Mostrar";
 pwdInput.autocomplete=create?"new-password":"current-password";
-document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Acesso local a este navegador. Funcionários de outros dispositivos precisam de autenticação com servidor.";
+document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Se marcar Salvar senha, o aplicativo entrará automaticamente neste dispositivo por até 30 dias. Ao clicar em Sair, será solicitado login novamente.";
 form.style.display="block";
 }
 function showChange(u){
@@ -1474,11 +1475,11 @@ function sessionValue(u){return u.id+"|"+u.email+"|"+u.hash}
 function rememberedUser(){
  try{
   const entry=JSON.parse(localStorage.getItem(REMEMBER_KEY)||"null");
-  if(!entry||!entry.id||!entry.salt||!Number.isFinite(entry.until)||entry.until<=Date.now()){
+  if(!entry||!entry.id||!entry.salt||!Number.isFinite(entry.until)||entry.until<=Date.now()||entry.until>Date.now()+(REMEMBER_DAYS*24*60*60*1000)+60000){
    localStorage.removeItem(REMEMBER_KEY);return null;
   }
   const user=findUser(entry.id);
-  if(!user||user.active===false||user.mustChange||user.salt!==entry.salt){
+  if(!user||user.active===false||user.mustChange||user.salt!==entry.salt||(entry.email&&entry.email!==user.email)){
    localStorage.removeItem(REMEMBER_KEY);return null;
   }
   return user;
@@ -1489,7 +1490,7 @@ logged=u;
 sessionStorage.setItem(SESSION_KEY,sessionValue(u));
 if(mode==="remember"){
   localStorage.setItem(REMEMBER_KEY,JSON.stringify({
-    id:u.id,salt:u.salt,until:Date.now()+REMEMBER_DAYS*24*60*60*1000
+    id:u.id,email:u.email,salt:u.salt,until:Date.now()+REMEMBER_DAYS*24*60*60*1000
   }));
   localStorage.setItem(LAST_EMAIL_KEY,u.email);
 }else if(mode==="session"){
