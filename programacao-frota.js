@@ -69,10 +69,11 @@ function safeStatusClass(status){
 }
 function cellCard(record,editable){
  const title=record.client||record.location||record.description||record.status||'Programação';
- const detail=record.location||record.description||'';
+ const detail=[record.location,record.description].filter(Boolean).filter((x,i,arr)=>x!==title&&arr.indexOf(x)===i).join(' · ');
  const prefix=record.startTime||'';
  const text='<span class="fboard-item-title">'+esc(title)+'</span>'+
-  (detail&&detail!==title?'<span class="fboard-item-detail">'+esc(detail)+'</span>':'')+
+  (detail?'<span class="fboard-item-detail">'+esc(detail)+'</span>':'')+
+  (record.driver?'<span class="fboard-item-driver">◉ '+esc(record.driver)+'</span>':'')+
   (prefix?'<span class="fboard-item-time">'+esc(prefix)+(record.endTime?'–'+esc(record.endTime):'')+'</span>':'');
  if(record.type==='manual'){
   return editable?'<button type="button" class="fboard-item '+safeStatusClass(record.status)+'" title="'+esc(record.status)+' · Editar" onclick="JRSBoard.edit(\''+esc(record.rowId)+'\',\''+esc(record.date)+'\',\''+esc(record.id)+'\')">'+text+'</button>':
