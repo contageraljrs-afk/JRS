@@ -403,7 +403,7 @@ db.proposals=Array.isArray(db.proposals)?db.proposals:[];
 db.vehicles=Array.isArray(db.vehicles)?db.vehicles:[];
 db.creditReviews=Array.isArray(db.creditReviews)?db.creditReviews:[];
 let view='dashboard',filterText='',filterCategory='',vehicleTypeFilter='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas de crédito'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
@@ -1065,7 +1065,7 @@ function clientResults(){
 function refreshClients(){const el=document.getElementById('clientsResults');if(el)el.innerHTML=clientResults()}
 function clients(){
  return header('Carteira de clientes','Cadastre pessoas físicas e jurídicas com CPF ou CNPJ, inclusive no novo formato alfanumérico.','Novo cliente',"openClient()")
- +'<div class="credit-clients-shortcut"><div><b>Consulta e análise de crédito</b><small>Consulte score, protestos e restrições pelo CPF ou CNPJ, após conectar o serviço oficial.</small></div><button class="btn primary" type="button" onclick="go(\'credit\')">Abrir consultas de crédito ↗</button></div>'
+ +'<div class="credit-clients-shortcut"><div><b>Consulta e análise de crédito</b><small>Consulte crédito com a Assertiva Análise 360: score, protestos e restrições por CPF ou CNPJ.</small></div><button class="btn primary" type="button" onclick="go(\'credit\')">Abrir consultas de crédito ↗</button></div>'
  +'<div class="filters"><input class="search" placeholder="Buscar por cliente, CPF, CNPJ, telefone ou cidade..." aria-label="Pesquisar clientes" value="'+esc(filterText)+'" oninput="filterText=this.value;refreshClients()"></div>'
  +'<div id="clientsResults">'+clientResults()+'</div>'
  +'<p class="muted" style="font-size:11px;margin-top:12px">Os registros já existentes continuam disponíveis. Complete o CPF ou CNPJ clicando em Editar. Dados desta demonstração são mantidos neste navegador.</p>';
