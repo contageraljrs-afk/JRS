@@ -1,0 +1,52 @@
+/* Consultas de crédito — JRS GUINDASTES */
+.credit-hero{background:linear-gradient(112deg,#192b21,#334636);border-radius:14px;color:#f9f9f4;display:flex;justify-content:space-between;align-items:center;gap:22px;padding:26px 30px;margin-bottom:20px;overflow:hidden}
+.credit-hero span{display:block;color:#fbd23d;font-size:10px;font-weight:850;letter-spacing:1.7px;margin-bottom:10px}
+.credit-hero h2{font-size:25px;line-height:1.22;margin:0 0 12px;letter-spacing:-.8px}
+.credit-hero p{color:#c6d3c8;font-size:12px;max-width:600px;margin:0}
+.credit-hero-icon{font-size:85px;opacity:.18;font-weight:900;line-height:1}
+.credit-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.credit-kpis .card{padding:19px;border-color:#e3eae0;background:#fff;box-shadow:0 8px 17px #24402507}
+.credit-kpis small{display:block;font-size:11px;color:#758675;margin-bottom:8px}
+.credit-kpis strong{display:block;color:#213b2b;font-size:28px;font-weight:850;letter-spacing:-1px}
+.credit-notice{background:#fff9e6;border:1px solid #f0dfae;border-left:4px solid #cea400;border-radius:9px;padding:15px 18px;margin-bottom:23px;color:#7b651e;font-size:12px;line-height:1.6}
+.credit-notice b{display:block;font-size:12px;margin-bottom:4px}
+.credit-notice p{margin:0}
+.credit-list-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 12px}
+.credit-list-heading h3{font-size:18px;margin-bottom:5px;color:#253b2a}
+.credit-list-heading small{color:#7d8d7d;font-size:11px}
+.credit-search{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.credit-search input{flex:1}
+.credit-search select{min-width:205px}
+.credit-list{padding:0!important;background:#fff!important;border-color:#e4eae2!important;overflow:hidden}
+.credit-list .table td,.credit-list .table th{padding:15px}
+.credit-list .table tr:hover{background:#f8faf6}
+.credit-list .table tr:last-child td{border-bottom:0}
+.credit-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:6px 10px;border-radius:999px;border:1px solid #d8e5da;font-size:10px;font-weight:850}
+.credit-chip.pending{color:#587065;background:#f1f6f1}
+.credit-chip.good{color:#236c45;background:#eaf8ed;border-color:#c5e5cb}
+.credit-chip.warn{color:#916b13;background:#fff8e4;border-color:#f3dba4}
+.credit-chip.review{color:#a14743;background:#fff0ee;border-color:#ecc5c1}
+.credit-dialog .dialog-panel{width:min(840px,100%);max-height:95vh}
+.credit-modal-summary{padding:12px 14px;background:#f4f8f2;border-radius:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:4px}
+.credit-modal-summary b{font-size:15px;color:#28402d}
+.credit-modal-summary small{font-size:11px;color:#7d8c7f}
+.credit-modal-warning{padding:13px 14px;background:#fff8e5;border:1px solid #f1e2b3;color:#806521;font-size:12px;line-height:1.5;border-radius:8px;margin:0 0 17px}
+.credit-metrics-live{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.credit-metrics-live>div{padding:15px 12px;background:#f3f8f2;border:1px solid #dfebdd;border-radius:9px;overflow-wrap:anywhere}
+.credit-metrics-live small{display:block;font-size:10px;color:#768a79;line-height:1.5}
+.credit-metrics-live b{display:block;font-size:15px;color:#2e4533;margin-top:6px}
+.credit-ack{display:flex;align-items:flex-start;gap:10px;font-size:11px;line-height:1.55;color:#6e7e70;cursor:pointer}
+.credit-ack input{flex:0 0 auto;margin-top:2px}
+#creditFormError{font-size:12px;color:#ab4037;font-weight:750}
+.credit-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.credit-detail-grid>div{padding:12px 13px;background:#f8faf6;border:1px solid #e4ebe2;border-radius:8px}
+.credit-detail-grid small{display:block;font-size:10px;color:#829184;margin-bottom:7px}
+.credit-detail-grid strong{display:block;color:#314735;font-size:12px;overflow-wrap:anywhere}
+.credit-detail-note{padding:15px 17px;border:1px solid #e3eae2;border-radius:8px;background:#f7faf5;margin-top:15px}
+.credit-detail-note b{font-size:12px;color:#324a36}
+.credit-detail-note p{font-size:12px;color:#6b7c70;margin:8px 0 0;line-height:1.55}
+.credit-clients-shortcut{background:#f6faf1;border:1px solid #deeada;border-radius:10px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:13px;flex-wrap:wrap;margin-bottom:18px}
+.credit-clients-shortcut b{display:block;font-size:13px;color:#2b422e}
+.credit-clients-shortcut small{display:block;font-size:11px;color:#7a8a7a;margin-top:5px}
+@media(max-width:1040px){.credit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:660px){.credit-hero{padding:21px;align-items:flex-start}.credit-hero-icon{display:none}.credit-hero h2{font-size:21px}.credit-search{flex-direction:column;align-items:stretch}.credit-search select{width:100%}.credit-metrics-live,.credit-detail-grid{grid-template-columns:1fr}.credit-kpis{gap:8px}.credit-kpis .card{padding:13px}.credit-kpis strong{font-size:22px}}
