@@ -374,6 +374,9 @@ h1,h2,h3,h4,.dashboard-head h1,.dash-hero h2{font-weight:800;letter-spacing:-.75
 <script src="./funcionarios-disponibilidade.js?v=1"></script>
 <link rel="stylesheet" href="./programacao-frota.css?v=3">
 <script src="./programacao-frota.js?v=3"></script>
+<link rel="stylesheet" href="./vistorias-manutencoes.css?v=1">
+<script src="./jrs-servicos-fotos.js?v=1"></script>
+<script src="./vistorias-manutencoes.js?v=1"></script>
 </head>
 <body>
 <div class="app">
@@ -407,16 +410,18 @@ db.proposals=Array.isArray(db.proposals)?db.proposals:[];
 db.vehicles=Array.isArray(db.vehicles)?db.vehicles:[];
 db.creditReviews=Array.isArray(db.creditReviews)?db.creditReviews:[];
 let view='dashboard',filterText='',filterCategory='',vehicleTypeFilter='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['staff','♧','Funcionários'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['inspections','▤','Vistorias e OS'],['maintenance','⚒','Manutenções'],['staff','♧','Funcionários'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const uid=p=>p+'-'+Date.now().toString(36)+'-'+(crypto.randomUUID?crypto.randomUUID().slice(0,8):Math.random().toString(36).slice(2,10));
 db.staff=Array.isArray(db.staff)?db.staff:[];
+db.inspections=Array.isArray(db.inspections)?db.inspections:[];
+db.maintenances=Array.isArray(db.maintenances)?db.maintenances:[];
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
 const status=(s)=>{let z=/disponível|aprov|conclu|confirmad/i.test(s)?'available':/reserva|análise|novo|agend|pendente/i.test(s)?'reserved':/opera|proposta|negocia|andamento/i.test(s)?'working':'inactive';return '<span class="status '+z+'">'+esc(s)+'</span>'};
-const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m==='proposals'?'quotes':m==='credit'?'clients':m==='fleetboard'||m==='staff'?'operations':m);
-const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m==='proposals'?'quotes':m==='credit'?'clients':m==='fleetboard'||m==='staff'?'operations':m);
+const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m==='proposals'?'quotes':m==='credit'?'clients':['fleetboard','staff','inspections','maintenance'].includes(m)?'operations':m);
+const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m==='proposals'?'quotes':m==='credit'?'clients':['fleetboard','staff','inspections','maintenance'].includes(m)?'operations':m);
 const requireEdit=m=>{if(canEdit(m))return true;alert('Seu perfil não permite alterar dados deste módulo.');return false};
 const header=(title,desc,button,action)=>'<div class="headline"><div><span class="eyebrow">JRS GUINDASTES · LOCAÇÕES</span><h1>'+title+'</h1><p class="subtitle">'+desc+'</p></div>'+(button&&((view==='dashboard')?canEdit('quotes'):canEdit(view))?'<button class="btn primary" onclick="'+action+'">＋ '+button+'</button>':'')+'</div>';
 const table=(cols,rows)=>'<div class="card tablewrap"><table class="table"><thead><tr>'+cols.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+ (rows.length?rows.join(''):'<tr><td colspan="'+cols.length+'" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div>';
@@ -471,7 +476,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&document.getElementById('dialog')?.classList.contains('open'))closeDialog();
 });
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';vehicleTypeFilter='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
+function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),inspections:()=>window.JRSWork.inspections(),maintenance:()=>window.JRSWork.maintenance(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
 
 
 /* jrs-home-calendar-v1: agenda de reservas e operações em destaque na página inicial */
@@ -1283,7 +1288,7 @@ function memberPassword(id){
 }
 
 function exportData(){const a=document.createElement('a'),b=new Blob([JSON.stringify({mode:'demonstracao',savedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'});a.href=URL.createObjectURL(b);a.download='jrs-smart-rental-demo.json';a.click();URL.revokeObjectURL(a.href)}
-function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];save();render()}}
+function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];db.inspections=[];db.maintenances=[];save();render()}}
 document.getElementById('date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});render();
 </script>
 
