@@ -1,7 +1,7 @@
 # Integração Assertiva Análise 360 · JRS Guindastes
 
 ## Estado atual
-A navegação do aplicativo contém **Consultas · Assertiva**. A página disponibiliza um campo de CPF ou CNPJ, indicadores de **score**, **protestos** e **restrições**, além de acesso ao [painel oficial da Assertiva](https://painel.assertivasolucoes.com.br/login).
+A navegação do aplicativo contém **Consultas · Assertiva**. A página disponibiliza um campo de CPF ou CNPJ, indicadores de **score**, **protestos** e **restrições**, além de acesso ao [painel oficial da Assertiva](https://painel.assertivasolucoes.com.br/).
 
 **A integração por API ainda não está ativa**. O aplicativo atual da JRS é um site estático no Render, com login demonstrativo armazenado no navegador. Não existe servidor com autenticação segura para a consulta de dados financeiros, nem credenciais Assertiva confirmadas. Nenhum score, protesto ou negativação é presumido.
 
