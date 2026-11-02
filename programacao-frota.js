@@ -14,6 +14,7 @@ const GROUPS=['Guindastes','Muncks','Carreta / cavalo','Empilhadeiras','Platafor
 const GROUP_ICONS={'Guindastes':'🏗','Muncks':'🚛','Carreta / cavalo':'🚚','Empilhadeiras':'📦','Plataformas':'⚙','Veículos':'🚙','Outros':'◈'};
 const DAY_NAMES=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
 let referenceWeek=monday(new Date());
+let availabilityDay=localISO(new Date());
 let showWeekend=false;
 function monday(date){
  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
@@ -110,7 +111,7 @@ function render(isHome){
   '<label class="fboard-weekend-toggle"><input type="checkbox" '+(showWeekend?'checked':'')+' onchange="JRSBoard.weekend(this.checked)"> Sáb. e dom.</label>'+
   (!isHome&&editable?'<button type="button" class="btn tiny" onclick="JRSBoard.manage()">Gerenciar linhas</button>':'')+
   '<button type="button" class="btn tiny" onclick="window.print()">Imprimir</button></div></div>';
- const cols='<tr><th class="fboard-corner"><span>EQUIPAMENTOS</span><small>FROTA JRS</small></th>'+dates.map(d=>'<th class="fboard-date-head '+(d.date===today?'fboard-is-today':'')+'"><b>'+d.day+'</b><span>'+d.human+'</span></th>').join('')+'</tr>';
+ const cols='<tr><th class="fboard-corner"><span>EQUIPAMENTOS</span><small>FROTA JRS</small></th>'+dates.map(d=>'<th class="fboard-date-head '+(d.date===today?'fboard-is-today':'')+(d.date===availabilityDay?' fboard-is-selected':'')+'"><button type="button" onclick="JRSBoard.pickDate(\''+d.date+'\')" title="Ver disponíveis em '+d.human+'"><b>'+d.day+'</b><span>'+d.human+'</span></button></th>').join('')+'</tr>';
  let lastGroup='';
  const htmlRows=displayed.map(row=>{
   let groupHeader='';
@@ -129,13 +130,26 @@ function render(isHome){
   (editable?'<button type="button" class="fboard-link-row" onclick="JRSBoard.editRow(\''+esc(row.id)+'\')" title="Editar ou vincular equipamento">✎</button>':'')+
   '</th>'+cells+'</tr>';
  }).join('');
- return '<section class="fboard-section '+(isHome?'fboard-home':'fboard-full')+'">'+header+controls+
+ return '<section class="fboard-section '+(isHome?'fboard-home':'fboard-full')+'">'+header+(window.JRSStaff?window.JRSStaff.availabilityPanel(availabilityDay,displayed):'')+controls+
  '<div class="fboard-scroll" role="region" aria-label="Lousa de programação da frota" tabindex="0"><table class="fboard-table"><thead>'+cols+'</thead><tbody>'+htmlRows+'</tbody></table></div>'+
  '<div class="fboard-footer"><div class="fboard-legend"><span><i class="fboard-swatch booked"></i> Programado</span><span><i class="fboard-swatch running"></i> Em operação</span><span><i class="fboard-swatch maintenance"></i> Manutenção</span><span><i class="fboard-swatch unavailable"></i> Folga / Feriado</span></div>'+
  '<small>Toque em um dia para programar. Reservas e operações aparecem nas linhas vinculadas aos seus equipamentos. Os dados permanecem neste navegador.</small></div></section>';
 }
-function move(offset){referenceWeek=new Date(referenceWeek.getFullYear(),referenceWeek.getMonth(),referenceWeek.getDate()+7*offset);renderPage()}
-function today(){referenceWeek=monday(new Date());renderPage()}
+function move(offset){
+ referenceWeek=new Date(referenceWeek.getFullYear(),referenceWeek.getMonth(),referenceWeek.getDate()+7*offset);
+ const selected=new Date(availabilityDay+'T12:00:00');
+ if(!Number.isNaN(selected.getTime())){selected.setDate(selected.getDate()+7*offset);availabilityDay=localISO(selected)}
+ renderPage();
+}
+function today(){referenceWeek=monday(new Date());availabilityDay=localISO(new Date());renderPage()}
+function pickDate(date){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+ const parsed=new Date(date+'T12:00:00');
+ if(Number.isNaN(parsed.getTime())||localISO(parsed)!==date)return;
+ availabilityDay=date;referenceWeek=monday(parsed);
+ if(parsed.getDay()===0||parsed.getDay()===6)showWeekend=true;
+ renderPage();
+}
 function weekend(value){showWeekend=Boolean(value);renderPage()}
 function renderPage(){if(typeof window.render==='function')window.render();}
 function openEntry(rowId,date,id){
@@ -151,6 +165,10 @@ function openEntry(rowId,date,id){
  const vehicle=linkedVehicle(row);
  const equipment=linkedEquipment(row);
  const autofillDriver=vehicle?.driver||equipment?.driver||'';
+ const activeDrivers=window.JRSStaff?window.JRSStaff.registeredDriverNames():[];
+ const activeHelpers=window.JRSStaff?window.JRSStaff.registeredHelperNames():[];
+ const workerSuggestions=(id,people)=>'<datalist id="'+id+'">'+people.map(name=>'<option value="'+esc(name)+'"></option>').join('')+'</datalist>';
+
  const field=(name,label,value,kind='text',extra='')=>'<div class="field"><label for="board-'+name+'">'+label+'</label><input id="board-'+name+'" name="'+name+'" type="'+kind+'" '+extra+' value="'+esc(value||'')+'"></div>';
  const opts=(name,label,values,current)=>'<div class="field"><label for="board-'+name+'">'+label+'</label><select id="board-'+name+'" name="'+name+'">'+values.map(s=>'<option value="'+esc(s)+'" '+(s===current?'selected':'')+'>'+esc(s)+'</option>').join('')+'</select></div>';
  const rowList=rows().map(r=>'<option value="'+esc(r.id)+'" '+(r.id===row.id?'selected':'')+'>'+esc(r.label+' · '+r.group)+'</option>').join('');
@@ -162,8 +180,9 @@ function openEntry(rowId,date,id){
  field('client','Cliente / empresa',defaults.client,'text','maxlength="110" placeholder="Ex.: PLT FIVE"')+
  field('location','Local / obra',defaults.location,'text','maxlength="150" placeholder="Cidade, endereço ou obra"')+
  field('description','Serviço / programação',defaults.description,'text','maxlength="180" placeholder="Içamento, transporte, remoção..."')+
- field('driver','Motorista / operador',defaults.driver??autofillDriver,'text','maxlength="100"')+
- field('helper','Ajudante',defaults.helper||'','text','maxlength="120" placeholder="Nome do ajudante (opcional)"')+
+ field('driver','Motorista / operador',defaults.driver??autofillDriver,'text','maxlength="100" list="jrs-board-driver-list" autocomplete="off"')+
+ field('helper','Ajudante',defaults.helper||'','text','maxlength="120" placeholder="Nome do ajudante (opcional)" list="jrs-board-helper-list" autocomplete="off"')+
+ workerSuggestions('jrs-board-driver-list',activeDrivers)+workerSuggestions('jrs-board-helper-list',activeHelpers)+
  '<div class="field span2 fboard-bring-form"><div class="fboard-bring-label"><label for="board-bringItems">O que precisa levar</label><span class="fboard-bring-warning">⚠ INFORMAÇÃO IMPORTANTE</span></div>'+
  '<textarea id="board-bringItems" name="bringItems" maxlength="350" rows="2" placeholder="Ex.: PEGA PALLET, LEVAR CINTAS OU MANILHAS">'+esc(defaults.bringItems||'')+'</textarea><small>Esta instrução aparecerá em vermelho na programação semanal.</small></div>'+
  field('startTime','Saída / início',defaults.startTime,'time')+
@@ -186,6 +205,21 @@ function openEntry(rowId,date,id){
    for(const key of ['client','location','description','driver','helper','bringItems','notes'])data[key]=String(data[key]||'').trim();
    if(!['Manutenção','Indisponível','Folga','Feriado'].includes(data.status)&&!data.client&&!data.location&&!data.description)throw Error('Informe o cliente, local ou serviço para programar.');
    if(data.startTime&&data.endTime&&data.endTime<data.startTime)throw Error('O horário final não pode ser anterior ao horário inicial.');
+   // The board uses day-level availability: warn before double-booking any registered worker.
+   if(data.driver&&data.helper&&data.driver.toLowerCase()===data.helper.toLowerCase())throw Error('Motorista e ajudante não podem ser a mesma pessoa.');
+   const normalized=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+   const alreadyAssigned=new Set();
+   for(const item of (db.fleetBoardEntries||[])){
+    if(item.date!==data.date||item.id===existing?.id)continue;
+    for(const name of [item.driver,item.helper])if(normalized(name))alreadyAssigned.add(normalized(name));
+   }
+   for(const item of (db.operations||[])){
+    if(item.date!==data.date||item.status==='Cancelada')continue;
+    for(const name of [item.operator,item.driver,item.helper])if(normalized(name))alreadyAssigned.add(normalized(name));
+   }
+   const duplicates=[data.driver,data.helper].filter(name=>name&&alreadyAssigned.has(normalized(name)));
+   if(duplicates.length&&!confirm('Atenção: '+duplicates.join(' e ')+' já consta(m) em outra escala neste dia. Deseja salvar mesmo assim?'))return;
+
    if(existing)Object.assign(existing,data,{updatedAt:new Date().toISOString()});
    else entries().push({...data,id:uid('PROG'),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
    save();closeDialog();renderPage();
@@ -252,7 +286,7 @@ function manage(){
 }
 function addEntry(){openEntry(rows()[0]?.id,localISO(new Date()))}
 window.JRSBoard={
- render,move,today,weekend,edit:openEntry,addEntry,delete:deleteEntry,editRow:rowForm,removeRow,manage,
- __debug:{weekDates,rows,entries,dailySchedule,monday}
+ render,move,today,weekend,pickDate,edit:openEntry,addEntry,delete:deleteEntry,editRow:rowForm,removeRow,manage,
+ __debug:{weekDates,rows,entries,dailySchedule,monday,getAvailabilityDay:()=>availabilityDay}
 };
 })();
