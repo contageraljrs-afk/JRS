@@ -1,4 +1,4 @@
-/* PLATAFORMA DE LOCAÇÕES · jrs-jornal-interno-v1
+/* JRS GUINDASTES · jrs-jornal-interno-v1
    Jornal corporativo com publicações e celebrações automáticas do cadastro integrado.
    Não cria aniversários nem avisos fictícios.
 */
@@ -44,31 +44,31 @@ function anniversaryEvents(days=50){
  return result.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name,'pt-BR'));
 }
 function newsCard(post,full=false){
- const category=roleNames[post.type]||'INTERNO';
+ const category=roleNames[post.type]||'JRS';
  const description=full?post.body:(post.body.length>180?post.body.slice(0,177)+'…':post.body);
  return '<article class="jrs-paper-article"><div class="jrs-paper-article-meta"><span class="jrs-paper-tag '+(post.type==='Aviso'?'urgent':'')+'">'+E(category)+'</span><span>'+niceDate(post.publishDate||post.createdAt?.slice(0,10))+'</span>'+(post.pinned?'<span class="jrs-paper-pin">★ Destaque</span>':'')+'</div><h3>'+E(post.title)+'</h3><p>'+E(description).replace(/\n/g,'<br>')+'</p>'+(full&&canEdit('hr')?'<div class="jrs-paper-article-actions"><button class="btn tiny" onclick="JRSJournal.open(\''+E(post.id)+'\')">Editar</button><button class="btn tiny" onclick="JRSJournal.toggle(\''+E(post.id)+'\')">Despublicar</button><button class="btn tiny jrs-paper-delete" onclick="JRSJournal.remove(\''+E(post.id)+'\')">Excluir</button></div>':'')+'</article>';
 }
 function eventCard(event){
- return '<div class="jrs-paper-person"><div class="jrs-paper-person-icon">'+(event.type==='birthday'?'🎂':'🏅')+'</div><div><b>'+E(event.name)+'</b><small>'+E(event.type==='birthday'?'Aniversário · '+shortDate(event.date):event.years+' ano'+(event.years>1?'s':'')+' de empresa · '+shortDate(event.date))+'</small></div>'+(event.daysAway===0?'<span class="jrs-paper-today">Hoje</span>':'')+'</div>';
+ return '<div class="jrs-paper-person"><div class="jrs-paper-person-icon">'+(event.type==='birthday'?'🎂':'🏅')+'</div><div><b>'+E(event.name)+'</b><small>'+E(event.type==='birthday'?'Aniversário · '+shortDate(event.date):event.years+' ano'+(event.years>1?'s':'')+' de JRS · '+shortDate(event.date))+'</small></div>'+(event.daysAway===0?'<span class="jrs-paper-today">Hoje</span>':'')+'</div>';
 }
 function home(){
  const current=today(),posts=visibleNews(),events=anniversaryEvents(40);
  const birthdays=events.filter(e=>e.type==='birthday').slice(0,4);
  const tenures=events.filter(e=>e.type==='tenure').slice(0,4);
  const lead=posts[0],rest=posts.slice(1,4);
- return '<section class="jrs-paper-home" aria-label="Mural interno da empresa">'
- +'<div class="jrs-paper-masthead"><div class="jrs-paper-wordmark"><span>COMUNICAÇÃO INTERNA · EDIÇÃO '+current.slice(0,7).replace('-','/')+'</span><h2>MURAL <strong>INTERNO</strong></h2><p>Gente, conquistas, segurança e novidades da nossa equipe.</p></div><div class="jrs-paper-mast-right"><span>'+new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})+'</span><button type="button" class="btn" onclick="go(\'jornal\')">Ler jornal completo ↗</button></div></div>'
- +'<div class="jrs-paper-main-grid"><div class="jrs-paper-lead"><span class="jrs-paper-overline">EM DESTAQUE</span>'+(lead?newsCard(lead,false):'<div class="jrs-paper-lead-empty"><h3>Novidades da equipe</h3><p>O mural reúne avisos, dicas de RH e segurança, aniversários e conquistas de quem faz parte da nossa história.</p>'+(canEdit('hr')?'<button class="btn" onclick="JRSJournal.open()">＋ Publicar primeiro aviso</button>':'')+'</div>')+
+ return '<section class="jrs-paper-home" aria-label="Jornal interno JRS">'
+ +'<div class="jrs-paper-masthead"><div class="jrs-paper-wordmark"><span>COMUNICAÇÃO INTERNA · EDIÇÃO '+current.slice(0,7).replace('-','/')+'</span><h2>JORNAL <strong>JRS</strong></h2><p>Gente, conquistas, segurança e novidades da nossa equipe.</p></div><div class="jrs-paper-mast-right"><span>'+new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})+'</span><button type="button" class="btn" onclick="go(\'jornal\')">Ler jornal completo ↗</button></div></div>'
+ +'<div class="jrs-paper-main-grid"><div class="jrs-paper-lead"><span class="jrs-paper-overline">EM DESTAQUE</span>'+(lead?newsCard(lead,false):'<div class="jrs-paper-lead-empty"><h3>O que acontece na JRS?</h3><p>O Jornal JRS reúne avisos, dicas de RH e segurança, aniversários e conquistas de quem faz parte da nossa história.</p>'+(canEdit('hr')?'<button class="btn" onclick="JRSJournal.open()">＋ Publicar primeiro aviso</button>':'')+'</div>')+
  (rest.length?'<div class="jrs-paper-briefs">'+rest.map(p=>'<span><b>'+E(p.type)+'</b> '+E(p.title)+'</span>').join('')+'</div>':'')+
  '</div><div class="jrs-paper-celebrations"><div class="jrs-paper-birthday"><div class="jrs-paper-subhead"><span>🎉</span><h3>Aniversariantes</h3><small>Próximos 40 dias</small></div>'+(birthdays.length?birthdays.map(eventCard).join(''):'<p class="jrs-paper-empty">Nenhum aniversário informado para os próximos dias.</p>')+'</div><div class="jrs-paper-tenure"><div class="jrs-paper-subhead"><span>🏆</span><h3>Tempo de empresa</h3></div>'+(tenures.length?tenures.map(eventCard).join(''):'<p class="jrs-paper-empty">Cadastre as datas de admissão no RH para celebrar a equipe.</p>')+'</div></div></div>'
- +'<div class="jrs-paper-bottom"><span><b>EM FOCO</b> · Avisos, dicas, conquistas e segurança para todos.</span><button type="button" onclick="go(\'jornal\')">Ver todas as publicações ↗</button></div></section>';
+ +'<div class="jrs-paper-bottom"><span><b>JRS EM FOCO</b> · Avisos, dicas, conquistas e segurança para todos.</span><button type="button" onclick="go(\'jornal\')">Ver todas as publicações ↗</button></div></section>';
 }
 function page(){
- if(!canView('jornal'))return '<div class="card">Você não possui acesso ao Mural interno.</div>';
+ if(!canView('jornal'))return '<div class="card">Você não possui acesso ao Jornal JRS.</div>';
  const all=visibleNews().filter(p=>articleFilter==='Todos'||p.type===articleFilter),drafts=news().filter(p=>!p.published);
  const birthdays=anniversaryEvents(50).filter(e=>e.type==='birthday');
  const tenures=anniversaryEvents(50).filter(e=>e.type==='tenure');
- return '<div class="jrs-paper-page"><div class="jrs-paper-page-head"><div><span class="jrs-paper-overline">COMUNICAÇÃO INTERNA · PLATAFORMA DE LOCAÇÕES</span><h1>Mural interno</h1><p>Notícias da empresa, dicas, avisos e reconhecimento da nossa equipe.</p></div>'+(canEdit('hr')?'<button class="btn primary" onclick="JRSJournal.open()">＋ Nova publicação</button>':'')+'</div>'
+ return '<div class="jrs-paper-page"><div class="jrs-paper-page-head"><div><span class="jrs-paper-overline">COMUNICAÇÃO INTERNA · JRS GUINDASTES</span><h1>Jornal JRS</h1><p>Notícias da empresa, dicas, avisos e reconhecimento da nossa equipe.</p></div>'+(canEdit('hr')?'<button class="btn primary" onclick="JRSJournal.open()">＋ Nova publicação</button>':'')+'</div>'
  +'<div class="jrs-paper-page-cards"><div class="card"><b>'+all.length+'</b><small>Publicações disponíveis</small></div><div class="card"><b>'+birthdays.length+'</b><small>Aniversários próximos</small></div><div class="card"><b>'+tenures.length+'</b><small>Aniversários de empresa</small></div></div>'
  +'<div class="jrs-paper-page-columns"><section><div class="jrs-paper-list-header"><h2>Publicações</h2><select onchange="JRSJournal.filter(this.value)"><option>Todos</option>'+TYPES.map(t=>'<option '+(articleFilter===t?'selected':'')+'>'+E(t)+'</option>').join('')+'</select></div>'
  +(all.length?all.map(x=>newsCard(x,true)).join(''):'<div class="jrs-paper-none">Nenhum aviso publicado nesta categoria.'+(canEdit('hr')?' Clique em Nova publicação para começar.':'')+'</div>')+
@@ -82,14 +82,14 @@ function open(id){
  const existing=id?news().find(x=>x.id===id):null;
  if(id&&!existing)return alert('Publicação não encontrada.');
  const x=existing||{};
- openDialog(existing?'Editar notícia · Mural interno':'Nova publicação · Mural interno',
+ openDialog(existing?'Editar notícia · Jornal JRS':'Nova publicação · Jornal JRS',
  '<form id="jrs-paper-form" class="form-grid">'
  +'<div class="field"><label for="paper-type">Categoria</label><select id="paper-type" name="type">'+TYPES.map(t=>'<option '+((x.type||'Aviso')===t?'selected':'')+'>'+E(t)+'</option>').join('')+'</select></div>'
  +'<div class="field"><label for="paper-date">Publicar a partir de</label><input id="paper-date" name="publishDate" type="date" value="'+E(x.publishDate||today())+'" required></div>'
  +'<div class="field span2"><label for="paper-title">Título *</label><input id="paper-title" name="title" maxlength="125" required value="'+E(x.title||'')+'" placeholder="Ex.: Informativo do RH / Aviso para equipe"></div>'
  +'<div class="field span2"><label for="paper-body">Mensagem *</label><textarea id="paper-body" name="body" maxlength="3500" rows="6" required placeholder="Escreva o comunicado, dica ou informação...">'+E(x.body||'')+'</textarea></div>'
  +'<div class="field"><label for="paper-expire">Retirar do mural após (opcional)</label><input id="paper-expire" name="expiresOn" type="date" value="'+E(x.expiresOn||'')+'"></div>'
- +'<div class="field jrs-paper-checkboxes"><label><input type="checkbox" name="pinned" '+(x.pinned?'checked':'')+'> Fixar como destaque</label><label><input type="checkbox" name="published" '+(x.published||!existing?'checked':'')+'> Publicar no Mural interno</label></div>'
+ +'<div class="field jrs-paper-checkboxes"><label><input type="checkbox" name="pinned" '+(x.pinned?'checked':'')+'> Fixar como destaque</label><label><input type="checkbox" name="published" '+(x.published||!existing?'checked':'')+'> Publicar no Jornal JRS</label></div>'
  +'<div class="span2" id="paper-error" role="alert"></div><div class="span2 actions"><button class="btn primary" type="submit">Salvar publicação</button><button class="btn" type="button" onclick="closeDialog()">Cancelar</button></div></form>');
  document.getElementById('jrs-paper-form').addEventListener('submit',event=>{
   event.preventDefault();
