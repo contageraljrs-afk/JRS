@@ -74,7 +74,7 @@ function render(){
  const list=sortedPunches('all'),incomplete=list.filter(x=>!clockStats(x,getPerson(x.staffId)).complete).length;
  const isEditor=canEdit('hr');
  const nav=[['colaboradores','Cadastro de colaboradores'],['ponto','Controle de ponto'],['fechamento','Fechamento da folha']];
- return '<section class="rh-module"><div class="rh-heading"><div><span class="rh-overline">GESTÃO DE LOCAÇÕES · RECURSOS HUMANOS</span><h1>Gestão de RH e Ponto</h1><p>Cadastro integrado da equipe, lançamentos diários e conferência mensal para fechamento.</p></div><div class="rh-heading-actions">'+(isEditor?'<button class="btn primary" onclick="JRSRH.employeeForm()">＋ Funcionário</button><button class="btn" onclick="JRSRH.punchForm()">＋ Registrar ponto</button>':'')+'</div></div>'
+ return '<section class="rh-module"><div class="rh-heading"><div><span class="rh-overline">JRS GUINDASTES · RECURSOS HUMANOS</span><h1>Gestão de RH e Ponto</h1><p>Cadastro integrado da equipe, lançamentos diários e conferência mensal para fechamento.</p></div><div class="rh-heading-actions">'+(isEditor?'<button class="btn primary" onclick="JRSRH.employeeForm()">＋ Funcionário</button><button class="btn" onclick="JRSRH.punchForm()">＋ Registrar ponto</button>':'')+'</div></div>'
  +'<div class="rh-metrics"><div class="card"><small>Colaboradores</small><b>'+people.length+'</b></div><div class="card"><small>Ativos</small><b>'+active+'</b></div><div class="card"><small>Lançamentos no mês</small><b>'+list.length+'</b></div><div class="card"><small>Pendências para conferir</small><b>'+incomplete+'</b></div></div>'
  +'<div class="rh-tabs" role="group" aria-label="Áreas do RH">'+nav.map(([key,label])=>'<button type="button" class="rh-tab '+(tab===key?'active':'')+'" onclick="JRSRH.setTab(\''+key+'\')">'+label+'</button>').join('')+'</div>'
  +'<div id="rh-tab-content">'+(tab==='colaboradores'?renderPeople():tab==='ponto'?renderPunches():renderClosings())+'</div>'
@@ -243,7 +243,7 @@ function exportCSV(){
  const content='\ufeff'+lines.map(row=>row.map(csvCell).join(';')).join('\r\n');
  const blob=new Blob([content],{type:'text/csv;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='ponto_folha_'+month+(selectedStaff!=='all'?'_'+selectedStaff:'')+'.csv';
+ a.href=url;a.download='JRS_ponto_'+month+(selectedStaff!=='all'?'_'+selectedStaff:'')+'.csv';
  a.style.display='none';document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
