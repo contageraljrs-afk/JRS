@@ -115,7 +115,7 @@ function tableHTML(assets){
  }).join('')+'</tbody></table></div>';
 }
 function renderSetup(){
- return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Conexão GraphQL da Infleet</h2><p>O servidor <b>JRS Infleet API</b> já foi criado na Render e está conectado ao endereço oficial <code>https://api.infleet.com.br/v1/graphql</code>. Para obter dados reais, faltam somente as credenciais da empresa configuradas diretamente no servidor.</p></div>'
+ return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Conexão GraphQL da Infleet</h2><p>O servidor de integração Infleet já foi criado na Render e está conectado ao endereço oficial <code>https://api.infleet.com.br/v1/graphql</code>. Para obter dados reais, faltam somente as credenciais da empresa configuradas diretamente no servidor.</p></div>'
  +'<div class="infleet-steps"><div><span>01</span><section><h3>Solicite seu Bearer token à Infleet</h3><p>O token da API GraphQL é fornecido pela Infleet à empresa contratante. Não cole esse token no aplicativo, no GitHub ou neste chat.</p></section></div>'
  +'<div><span>02</span><section><h3>Configure as variáveis seguras na Render</h3><p>Abra o serviço <b>jrs-infleet-api</b> e configure: <code>INFLEET_API_TOKEN</code> (token oficial) e <code>JRS_INFLEET_ACCESS_PASSWORD</code> (senha forte de pelo menos 12 caracteres, escolhida pela empresa). O serviço reiniciará ao aplicar as alterações.</p></section></div>'
  +'<div><span>03</span><section><h3>Autentique a consulta no sistema</h3><p>Volte para esta página, clique em “Autenticar integração” e informe somente a senha de acesso criada por você na Render. O token Infleet ficará guardado no servidor, não no navegador.</p></section></div>'
