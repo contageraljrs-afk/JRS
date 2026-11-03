@@ -52,3 +52,7 @@
 .cos-detail-routes{margin:17px 0}
 @media(max-width:750px){.cos-head .btn{width:100%}.cos-stats{gap:8px}.cos-stats>.card{padding:12px!important}.cos-stats strong{font-size:24px}.cos-toolbar select{flex:1}.cos-toolbar .search{min-width:100%}.cos-detail{grid-template-columns:1fr}.cos-detail-item.alert{grid-column:auto}}
 @media print{.cos-routes a{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+/* Vínculo posterior: ação opcional, sem ocultar a OS independente */
+.cos-link-later{background:#fff5d7!important;color:#82600c!important;border-color:#ebd38c!important;font-weight:850!important}
+.cos-link-later:hover{background:#fae7ad!important}
