@@ -380,6 +380,8 @@ h1,h2,h3,h4,.dashboard-head h1,.dash-hero h2{font-weight:800;letter-spacing:-.75
 <link rel="stylesheet" href="./jrs-rh-jornal.css?v=1">
 <script src="./jrs-rh-ponto.js?v=1"></script>
 <script src="./jrs-jornal.js?v=1"></script>
+<link rel="stylesheet" href="./integracao-infleet.css?v=1">
+<script src="./integracao-infleet.js?v=1"></script>
 <style id="jrs-srv-shortcuts">.srv-shortcuts{display:flex;gap:9px;flex-wrap:wrap;margin:-3px 0 17px}.srv-shortcuts .btn{font-size:12px;background:#fff;border-color:#dce5da;color:#32513a}.srv-shortcuts .btn:hover{background:#f5f9f0}@media(max-width:580px){.srv-shortcuts .btn{flex:1}}</style>
 </head>
 <body>
@@ -414,7 +416,7 @@ db.proposals=Array.isArray(db.proposals)?db.proposals:[];
 db.vehicles=Array.isArray(db.vehicles)?db.vehicles:[];
 db.creditReviews=Array.isArray(db.creditReviews)?db.creditReviews:[];
 let view='dashboard',filterText='',filterCategory='',vehicleTypeFilter='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['jornal','▤','Jornal JRS'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['inspections','▤','Vistorias e OS'],['maintenance','⚒','Manutenções'],['staff','♧','Funcionários'],['hr','♡','Recursos Humanos'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['jornal','▤','Jornal JRS'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['inspections','▤','Vistorias e OS'],['maintenance','⚒','Manutenções'],['staff','♧','Funcionários'],['hr','♡','Recursos Humanos'],['vehicles','🚚','Veículos e frota'],['infleet','◉','Integração Infleet'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
@@ -425,10 +427,11 @@ db.maintenances=Array.isArray(db.maintenances)?db.maintenances:[];
 db.rhPunches=Array.isArray(db.rhPunches)?db.rhPunches:[];
 db.rhClosings=Array.isArray(db.rhClosings)?db.rhClosings:[];
 db.jrsJournal=Array.isArray(db.jrsJournal)?db.jrsJournal:[];
+db.infleetLinks=Array.isArray(db.infleetLinks)?db.infleetLinks:[];
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
 const status=(s)=>{let z=/disponível|aprov|conclu|confirmad/i.test(s)?'available':/reserva|análise|novo|agend|pendente/i.test(s)?'reserved':/opera|proposta|negocia|andamento/i.test(s)?'working':'inactive';return '<span class="status '+z+'">'+esc(s)+'</span>'};
 /* jrs-rh-access-v1: jornal visível a usuários logados; edições reservadas ao RH. */
-const accessModule=m=>m==='proposals'?'quotes':m==='credit'?'clients':m==='jornal'?'dashboard':['fleetboard','inspections','maintenance'].includes(m)?'operations':m;
+const accessModule=m=>m==='proposals'?'quotes':m==='credit'?'clients':m==='jornal'?'dashboard':m==='infleet'?'vehicles':['fleetboard','inspections','maintenance'].includes(m)?'operations':m;
 const canView=m=>!window.JRSAccess||(m==='staff'?window.JRSAccess.canView('operations')||window.JRSAccess.canView('hr'):window.JRSAccess.canView(accessModule(m)));
 const canEdit=m=>!window.JRSAccess||(m==='staff'?window.JRSAccess.canEdit('operations')||window.JRSAccess.canEdit('hr'):m==='jornal'?window.JRSAccess.canEdit('hr'):window.JRSAccess.canEdit(accessModule(m)));
 const requireEdit=m=>{if(canEdit(m))return true;alert('Seu perfil não permite alterar dados deste módulo.');return false};
@@ -440,6 +443,7 @@ function navIcon(key){
  dashboard:'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
  equipment:'<path d="m3 18 7-7 4 4-7 7H3v-4Z"/><path d="M14 4a5 5 0 0 0-1 5l2 2a5 5 0 0 0 5-1l-3-3 3-3a5 5 0 0 0-6 0Z"/>',
  vehicles:'<path d="M3 16V7h12l4 5h2v4H3Z"/><circle cx="7" cy="17.5" r="2"/><circle cx="18" cy="17.5" r="2"/><path d="M15 7v5h4"/>',
+ infleet:'<path d="M3 17a9 9 0 0 1 18 0M6 17a6 6 0 0 1 12 0M9 17a3 3 0 0 1 6 0M12 17v3"/>',
  quotes:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
  proposals:'<path d="M8 3h8l4 4v14H4V3h4Z"/><path d="M16 3v5h4M8 12h8M8 16h6"/>',
  bookings:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3"/>',
@@ -489,7 +493,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&document.getElementById('dialog')?.classList.contains('open'))closeDialog();
 });
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';vehicleTypeFilter='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,jornal:()=>window.JRSJournal.page(),hr:()=>window.JRSRH.render(),fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),inspections:()=>window.JRSWork.inspections(),maintenance:()=>window.JRSWork.maintenance(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
+function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,jornal:()=>window.JRSJournal.page(),hr:()=>window.JRSRH.render(),fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),infleet:()=>window.JRSInfleet.render(),inspections:()=>window.JRSWork.inspections(),maintenance:()=>window.JRSWork.maintenance(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
 
 
 /* jrs-home-calendar-v1: agenda de reservas e operações em destaque na página inicial */
@@ -598,6 +602,7 @@ function vehicles(){
  const all=db.vehicles||[],confirmed=all.filter(v=>v.fleetStatus==='Em atividade').length,unverified=all.filter(v=>v.fleetStatus==='Não verificado').length;
  const canModify=canEdit('vehicles');
  return header('Veículos e frota','Cadastre, classifique e visualize seus veículos junto aos equipamentos; a disponibilidade para locação é controlada separadamente.',canModify?'Novo veículo':'', 'openVehicleForm()')
+ +'<div class="infleet-fleet-shortcut"><div><b>Infleet · Rastreamento e telemetria</b><small>Conecte a frota, confira correspondências por placa e veja a situação da API.</small></div><button type="button" class="btn tiny" onclick="go(\'infleet\')">Abrir Infleet ↗</button></div>'
  +'<div class="stats"><div class="card"><small>Registros de veículos</small><div class="bigmetric">'+all.length+'</div><small>Histórico patrimonial</small></div><div class="card"><small>Atividade confirmada manualmente</small><div class="bigmetric">'+confirmed+'</div><small>Não representa disponibilidade para locação</small></div><div class="card"><small>Situação não verificada</small><div class="bigmetric">'+unverified+'</div><small>Confirmar com a equipe da JRS</small></div></div>'
  +(window.JRS_FLEET_ROSTER_BUNDLE&&!localStorage.getItem(photoRosterFlag)?'<div class="card fleet-activation"><div class="flex" style="justify-content:space-between;gap:15px"><div><h3>Vincular placas e responsáveis da foto</h3><p class="muted">17 veículos com placa e 4 itens sem placa. A correspondência utiliza o cadastro existente e acrescenta motorista/responsável, tipo e descrição; sem apagar RENAVAM ou chassi.</p></div><button class="btn primary" onclick="applyFleetRoster()">Aplicar relação de veículos</button></div></div>':'')
  +(window.JRS_FLEET_BUNDLE&&!localStorage.getItem(fleetUnlockFlag)?'<div class="card fleet-activation"><div class="flex" style="justify-content:space-between;gap:15px"><div><h3>29 veículos prontos para cadastrar</h3><p class="muted">Os dados estão no aplicativo em pacote criptografado. Ative uma única vez para preencher a frota com placas, modelos, RENAVAM, chassis e informações do documento, sem importar arquivos.</p></div><button class="btn primary" onclick="activateFleet()">Ativar 29 veículos</button></div></div>':'')
@@ -1301,7 +1306,7 @@ function memberPassword(id){
 }
 
 function exportData(){const a=document.createElement('a'),b=new Blob([JSON.stringify({mode:'demonstracao',savedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'});a.href=URL.createObjectURL(b);a.download='jrs-smart-rental-demo.json';a.click();URL.revokeObjectURL(a.href)}
-function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];db.inspections=[];db.maintenances=[];db.rhPunches=[];db.rhClosings=[];db.jrsJournal=[];save();render()}}
+function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];db.inspections=[];db.maintenances=[];db.rhPunches=[];db.rhClosings=[];db.jrsJournal=[];db.infleetLinks=[];save();render()}}
 document.getElementById('date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});render();
 </script>
 
