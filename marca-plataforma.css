@@ -25,3 +25,10 @@ body.has-platform-logo .platform-header-brand{display:none!important}
 .platform-brand-status{font-size:11px;font-weight:800;margin-top:10px;min-height:15px}
 .platform-brand-limitation{background:#fff9e7;color:#8a7032;border:1px solid #f0dc9c;border-radius:8px;padding:12px;margin:16px 0 0;font-size:11px;line-height:1.65}
 @media(max-width:640px){.platform-preview-art{width:100%;max-width:100%}.platform-brand-actions .btn{flex:1;min-width:135px}.platform-settings{padding:15px!important}.platform-header-brand{max-width:100px;font-size:10px}}
+
+/* O logo enviado pode ser horizontal, quadrado ou vertical. Não impor proporção da marca antiga. */
+.sidebar .jrs-brand-card .jrs-official-logo,
+#jrs-auth .jrs-auth-brand-card .jrs-official-logo,
+.jrs-brand-card .jrs-official-logo{aspect-ratio:auto!important;width:100%;height:auto;max-height:103px;object-fit:contain}
+#jrs-auth .jrs-auth-brand-card .jrs-official-logo{max-height:115px}
+.sidebar .jrs-brand-card .jrs-official-logo{max-height:100px}
