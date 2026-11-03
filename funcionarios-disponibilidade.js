@@ -28,7 +28,7 @@ function render(){
  const active=list.filter(s=>s.status==='Ativo').length;
  const nDrivers=list.filter(s=>s.status==='Ativo'&&group(s.role)==='drivers').length;
  const nHelpers=list.filter(s=>s.status==='Ativo'&&group(s.role)==='helpers').length;
- return '<div class="jrs-employee-title"><div><span class="eyebrow">JRS GUINDASTES · GESTÃO DE EQUIPE</span><h1>Funcionários da empresa</h1><p class="subtitle">Cadastre motoristas, ajudantes, operadores e colaboradores. A disponibilidade aparece na programação semanal.</p></div>'
+ return '<div class="jrs-employee-title"><div><span class="eyebrow">PLATAFORMA DE LOCAÇÕES · GESTÃO DE EQUIPE</span><h1>Funcionários da empresa</h1><p class="subtitle">Cadastre motoristas, ajudantes, operadores e colaboradores. A disponibilidade aparece na programação semanal.</p></div>'
  +(canEdit('staff')?'<button class="btn primary" type="button" onclick="JRSStaff.open()">＋ Novo funcionário</button>':'')+'</div>'
  +'<div class="jrs-employee-metrics"><div class="card"><small>Funcionários cadastrados</small><b>'+list.length+'</b></div><div class="card"><small>Em atividade</small><b>'+active+'</b></div><div class="card"><small>Motoristas ativos</small><b>'+nDrivers+'</b></div><div class="card"><small>Ajudantes ativos</small><b>'+nHelpers+'</b></div></div>'
  +'<div class="jrs-employee-note">Disponibilidade é calculada com base nas escalas registradas e no status cadastrado, não por GPS ou ponto em tempo real. Cadastre os funcionários para preencher o painel acima da lousa.</div>'
