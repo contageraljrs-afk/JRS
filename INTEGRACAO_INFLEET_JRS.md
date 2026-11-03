@@ -1,87 +1,48 @@
-# Integração Infleet — JRS GUINDASTES
+# Integração Infleet GraphQL — JRS Guindastes
 
-## Estado de implantação
-A interface **Gestão → Integração Infleet** já existe no aplicativo JRS, com:
-- acesso ao [painel oficial da Infleet](https://app.infleet.com.br/);
-- consulta do status da conexão (não declara "conectado" se não houver backend autenticado);
-- relação dos veículos/equipamentos existentes na JRS;
-- associação pelo número da placa após resposta real da API;
-- cadastro opcional de ID externo da Infleet para resolver equipamentos sem placa ou correspondências ambíguas;
-- indicadores de total de ativos JRS, correspondências efetivas e últimas leituras recentes, sem dados simulados.
+## Situação atual
+**Servidor publicado na Render:** https://jrs-infleet-api.onrender.com
 
-**Não está ativa a integração automática**. A aplicação atualmente usa um **site estático na Render**, com autenticação demonstrativa no navegador e sem token Infleet fornecido pelo usuário. Não é seguro enviar token Infleet pelo frontend, publicar segredos no GitHub ou permitir que o login local seja considerado autorização para expor posições de veículos. A integração de Markponto para RH é um projeto separado e também necessita validação do método de acesso e de credenciais.
+**Aplicativo JRS existente:** https://jrs-smart-rental.onrender.com → Gestão → Integração Infleet.
 
-## Capacidades oficiais
-Documentação pública:
-- https://help.infleet.com.br/pt-BR/articles/16447926-como-integrar-seus-sistemas-a-infleet-api-graphql-e-webhook
+O frontend agora acessa um backend real em Render que chama o endpoint **oficial Infleet** `https://api.infleet.com.br/v1/graphql`. Não acessa diretamente a API da Infleet pelo navegador. O backend foi criado em `infleet-backend/server.js`, com testes em `infleet-backend/server.test.js`.
+
+**Importante:** ainda não foi fornecido nem instalado o token Infleet da JRS; o servidor está em funcionamento, mas sem permissão para consultar os veículos reais até configurar duas variáveis privadas na Render.
+
+## Ativação sem expor o token
+1. Solicitar à Infleet o **Bearer token da API GraphQL** da conta JRS (e confirmar permissões de consulta de veículos e posições).
+2. Entrar com a conta do administrador em https://dashboard.render.com/web/srv-dbkmaq7b9u1s73fqpdsg
+3. No menu **Environment**, cadastrar:
+   - `INFLEET_API_TOKEN`: token real da Infleet, **somente valor**, sem o prefixo `Bearer`.
+   - `JRS_INFLEET_ACCESS_PASSWORD`: uma senha forte de pelo menos **12 caracteres**, criada pela JRS para proteger a integração.
+   - `JRS_APP_ORIGIN`: já configurado para `https://jrs-smart-rental.onrender.com`.
+4. Salvar as variáveis e aplicar o deploy/restart no Render. **Nunca** colar o token ou a senha no repositório, frontend ou chat.
+5. No aplicativo JRS, entrar em **Integração Infleet → Autenticar integração** e informar **somente** a senha `JRS_INFLEET_ACCESS_PASSWORD`. O token Infleet permanece exclusivamente no servidor.
+6. Conferir placas/IDs, horários de posição, velocidade e ignição. O frontend não afirma GPS em tempo real: as posições do GraphQL são consultas sob demanda e podem estar ausentes/atrasadas.
+
+## Chamadas disponíveis
+Todos os endpoints do backend foram implementados em:
+
+`https://jrs-infleet-api.onrender.com/api/integracoes/infleet`
+
+- `GET /config`: retorna apenas `configured` e metadados não sensíveis.
+- `POST /login` com `{"password":"SENHA_ESCOLHIDA_NA_RENDER"}`: autentica com a senha dedicada e entrega sessão temporária (4h).
+- `GET /status`: exige sessão por header `Authorization: Bearer <SESSION_TOKEN>` e confirma se o token da Infleet está no servidor.
+- `GET /frota`: exige a mesma sessão e consulta a API GraphQL oficial da Infleet.
+
+A JRS recebe apenas os campos normalizados para seu painel (ID de veículo, placa, nome, horímetro, odômetro, posição, data/hora, velocidade, ignição, validade e nome do motorista quando retornado). CPF, CNH e token original nunca saem do servidor. Sessão é temporária em memória, sem armazenamento da senha no navegador.
+
+O backend consulta `listVehicles` e `listVehiclePositions`. Para limitar impacto: até 100 veículos na listagem e posições de até 30 veículos no intervalo da última hora, sob demanda, com cache de 90 segundos. Relatórios incompletos são rotulados como parciais. Para histórico contínuo seria necessária integração separada via webhook Infleet.
+
+**Limitação:** o esquema e as permissões reais da conta JRS só poderão ser validados depois de cadastrar o token. O backend já possui testes com respostas simuladas, mas não foi realizado acesso a dados reais da Infleet.
+
+## Segurança
+- As origens de navegador permitidas são restringidas a `JRS_APP_ORIGIN`; endpoints da frota exigem autenticação adicional por senha dedicada e token de sessão temporário.
+- O login atual da aplicação JRS é demonstrativo/local e **não é suficiente para proteger rastreamento**. Por isso a senha extra é obrigatória enquanto não existir autenticação empresarial compartilhada no servidor.
+- Sem variável de ambiente, o backend nega consultas; ele **não** tenta acessar veículos com dados fictícios.
+- Não há sincronização em background, webhook ou migração dos cadastros locais. O módulo utiliza correspondência por placa/ID, não atualiza automaticamente escalas ou disponibilidade de locação.
+
+## Fontes oficiais
 - https://docs.api.infleet.com.br/boas-vindas
-- https://help.infleet.com.br/pt-BR/articles/15922347-como-criar-um-webhook-para-receber-posicoes-e-eventos-de-telemetria-e-videotelemetria
-
-A **API GraphQL** oficial usa HTTPS `https://api.infleet.com.br/v1/graphql` com autenticação `Authorization: Bearer [TOKEN]`, liberado pelo suporte Infleet. A API é destinada a consultas/cadastros de veículos, motoristas, posição, viagens, indicadores, abastecimento e manutenção sob demanda.
-
-Para telemetria contínua, os **webhooks** Infleet fazem `POST` para servidor HTTPS público configurado em Integrações → Webhooks. O backend deve responder 2xx em menos de 3 segundos, verificar header secreto e deduplicar eventos por UUID, porque o provedor tem estratégia de entrega pelo menos uma vez. Não confiar em origem sem validar header de autenticação.
-
-## Contrato de backend esperado na mesma origem JRS
-O frontend só considera conectado se esta chamada do **backend autenticado** responder:
-
-`GET /api/integracoes/infleet/status`
-
-```json
-{
-  "connected": true,
-  "provider": "Infleet",
-  "auth": "server"
-}
-```
-
-O backend deverá confirmar a sessão do usuário no servidor e validar papéis de acesso; o status não deve devolver token nem dados privados.
-
-A consulta manual de frota usa:
-
-`GET /api/integracoes/infleet/frota`
-
-Resposta normalizada pelo backend:
-
-```json
-{
-  "provider": "Infleet",
-  "fetchedAt": "2026-11-03T09:00:00-03:00",
-  "vehicles": [
-    {
-      "id": "ID_EXTERNO",
-      "plate": "ABC1D23",
-      "name": "Veículo (exemplo de esquema)",
-      "driver": "Motorista (exemplo de esquema)",
-      "position": {
-        "label": "Localidade (se fornecida)",
-        "recordedAt": "2026-11-03T08:55:00-03:00",
-        "speedKmh": 0,
-        "ignition": false,
-        "valid": true
-      },
-      "odometerKm": null,
-      "engineHours": null
-    }
-  ]
-}
-```
-
-**Isto é apenas o contrato ilustrativo dos campos. Não é uma consulta real.** O backend traduz os formatos efetivos disponíveis na conta Infleet, nunca inventa posição, velocidade, status ou motorista. Campos ausentes são `null`/não informados. Quando `position.valid === false`, a interface sinaliza posicionamento inválido.
-
-Proteções fundamentais:
-1. **Servidor web autenticado**, com login real e autorização por usuário JRS e escopo de frota. O login local da demo não protege um endpoint público.
-2. Token Infleet guardado somente como segredo do backend, nunca no navegador, URL, arquivo .env no GitHub ou mensagens.
-3. HTTPS, autorização de CORS/referer e CSRF conforme a arquitetura escolhida, log de auditoria e limites de requisições.
-4. Verificação de placa única para o vínculo automático; caso haja duplicidade, exigir mapeamento manual de ID. Validar divergência entre ID vinculado e placa.
-5. Políticas LGPD de finalidade, retenção e acesso, pois posições e jornadas de motoristas são informações sensíveis ao contexto de trabalho.
-6. API consultada sob demanda; sem polling intenso de toda a frota. Usar webhook para telemetria contínua quando de fato implementado.
-7. Nunca considerar veículo `livre` apenas porque tem ignição desligada ou está parado: disponibilidade de locação continua independente da telemetria.
-
-## Sequência de ativação
-- Solicitar à Infleet a liberação de **API GraphQL** para conta JRS e token de acesso.
-- Implantar no Render um **serviço de backend autenticado** e armazenar o token em variável de ambiente secreta.
-- Construir consultas reais conforme o schema da documentação e mapear resposta para contrato acima.
-- Validar com uma placa, verificar horário/posição, e então habilitar restante da frota.
-- Para alertas em tempo real, adicionar endpoint webhook com segredo/UUID de idempotência e persistência segura.
-
-Neste repositório o frontend está pronto para estes endpoints. **Eles ainda não existem no site estático.**
+- https://docs.api.infleet.com.br/queries/listvehiclepositions
+- https://help.infleet.com.br/pt-BR/articles/16447926-como-integrar-seus-sistemas-a-infleet-api-graphql-e-webhook
