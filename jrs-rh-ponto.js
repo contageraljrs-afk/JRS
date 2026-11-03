@@ -198,11 +198,11 @@ function punchForm(staffId,recordDate){
 }
 function closingTable(){
  const candidates=staff().filter(x=>selectedStaff==='all'||selectedStaff===x.id).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
- return '<div class="card tablewrap rh-table-wrap"><table class="table"><thead><tr><th>Colaborador</th><th>Dias lançados</th><th>Horas conferíveis</th><th>Acima da referência</th><th>Abaixo da referência</th><th>Pendências</th><th>Conferência</th><th>Ação</th></tr></thead><tbody>'
+ return '<div class="card tablewrap rh-table-wrap"><table class="table"><thead><tr><th>Colaborador</th><th>Dias lançados</th><th>Horas conferíveis</th><th>Acima da referência</th><th>Abaixo da referência</th><th>Faltas / atestados / férias</th><th>Pendências</th><th>Conferência</th><th>Ação</th></tr></thead><tbody>'
  +(candidates.length?candidates.map(person=>{
   const s=summary(person),closed=getClosing(person.id);
-  return '<tr><td><b>'+E(person.name)+'</b><small class="rh-cell-small">'+E(person.role)+'</small></td><td>'+s.records+'</td><td><b>'+duration(s.worked)+'</b></td><td>+'+duration(s.positive)+'</td><td>−'+duration(s.negative)+'</td><td>'+s.pending+'</td><td>'+payrollState(person.id)+'</td><td>'+(canEdit('hr')?'<button class="btn tiny '+(closed?'':'primary')+'" onclick="JRSRH.toggleClose(\''+E(person.id)+'\')">'+(closed?'Reabrir':'Conferir / fechar')+'</button>':'—')+'</td></tr>';
- }).join(''):'<tr><td colspan="8" class="empty">Nenhum funcionário encontrado.</td></tr>')+'</tbody></table></div>';
+  return '<tr><td><b>'+E(person.name)+'</b><small class="rh-cell-small">'+E(person.role)+'</small></td><td>'+s.records+'</td><td><b>'+duration(s.worked)+'</b></td><td>+'+duration(s.positive)+'</td><td>−'+duration(s.negative)+'</td><td><span class="rh-occurrences">F: '+(s.occurrences['Falta']||0)+' · A: '+(s.occurrences['Atestado']||0)+' · V: '+(s.occurrences['Férias']||0)+'</span></td><td>'+s.pending+'</td><td>'+payrollState(person.id)+'</td><td>'+(canEdit('hr')?'<button class="btn tiny '+(closed?'':'primary')+'" onclick="JRSRH.toggleClose(\''+E(person.id)+'\')">'+(closed?'Reabrir':'Conferir / fechar')+'</button>':'—')+'</td></tr>';
+ }).join(''):'<tr><td colspan="9" class="empty">Nenhum funcionário encontrado.</td></tr>')+'</tbody></table></div>';
 }
 function renderClosings(){
  const records=sortedPunches('all'),review=records.filter(x=>!clockStats(x,getPerson(x.staffId)).complete).length;
