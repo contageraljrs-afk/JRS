@@ -50,8 +50,8 @@ function baseCards(){
 function show(){
  if(!canView('credit'))return '<div class="card">Acesso restrito ao cadastro de clientes.</div>';
  const doc=displayDoc(requestedDocument);
- return '<div class="headline"><div><span class="eyebrow">CONSULTAS DE CRÉDITO · ASSERTIVA ANÁLISE 360</span><h1>Consultas de crédito</h1><p class="subtitle">Score, protestos e restrições por CPF/CNPJ via Assertiva.</p></div></div>'
- +'<section class="credit-simple-hero"><div class="credit-hero-eyebrow">ASSERTIVA · ANÁLISE 360</div><h2>Consulta de score e restrições.</h2><p>Insira o CPF ou CNPJ para consultar informações da Assertiva quando a integração da empresa estiver autorizada e ativa.</p>'
+ return '<div class="headline"><div><span class="eyebrow">JRS GUINDASTES · ASSERTIVA ANÁLISE 360</span><h1>Consultas de crédito</h1><p class="subtitle">Score, protestos e restrições por CPF/CNPJ via Assertiva.</p></div></div>'
+ +'<section class="credit-simple-hero"><div class="credit-hero-eyebrow">ASSERTIVA · ANÁLISE 360</div><h2>Consulta de score e restrições.</h2><p>Insira o CPF ou CNPJ para consultar informações da Assertiva quando a integração da JRS estiver autorizada e ativa.</p>'
  +'<form id="creditLookupForm" onsubmit="JRSCreditUI.search(event)" class="credit-simple-form"><div class="credit-input-area"><label for="creditDocumentInput">CPF OU CNPJ</label>'
  +'<input id="creditDocumentInput" name="document" type="text" maxlength="18" value="'+esc(doc)+'" placeholder="000.000.000-00 ou 00.000.000/0000-00" autocapitalize="characters" autocomplete="off" spellcheck="false" required oninput="JRSCreditUI.input(this)"></div>'
  +'<button class="btn primary credit-consult-button" type="submit" '+(isLoading?'disabled':'')+'>'+(isLoading?'Consultando...':'Consultar')+'</button></form>'
@@ -67,7 +67,7 @@ function statusHtml(){
  if(currentError)return '<div class="credit-action-message credit-message-error">'+esc(currentError)+'</div>';
  if(isLoading)return '<div class="credit-action-message">Solicitando consulta ao provedor de crédito...</div>';
  if(currentReport)return '<div class="credit-action-message credit-message-success">Consulta retornada pelo serviço conectado.</div>';
- if(!enabled())return '<div class="credit-action-message"><b>A API Assertiva ainda não está conectada a esta plataforma.</b> Para consultar aqui dentro, a empresa precisa ter acesso ao produto Análise 360 e ativar as credenciais no servidor. Se já possui conta, utilize acima o botão Acessar painel Assertiva. Nenhuma consulta de CPF/CNPJ foi realizada pelo aplicativo.</div>';
+ if(!enabled())return '<div class="credit-action-message"><b>A API Assertiva ainda não está conectada à JRS.</b> Para consultar aqui dentro, a empresa precisa ter acesso ao produto Análise 360 e ativar as credenciais no servidor. Se já possui conta, utilize acima o botão Acessar painel Assertiva. Nenhuma consulta de CPF/CNPJ foi realizada pelo aplicativo.</div>';
  return '<div class="credit-action-message">Informe o CPF ou CNPJ e clique em Consultar.</div>';
 }
 function reportHtml(data){
@@ -114,7 +114,7 @@ async function search(event){
   update();return;
  }
  if(!enabled()){
-  currentError='Consulta não realizada: a API Assertiva ainda não foi conectada a esta plataforma. O documento foi validado, mas não houve consulta de score, protestos ou restrições. Use o acesso ao painel oficial acima.';
+  currentError='Consulta não realizada: a API Assertiva ainda não foi conectada à JRS. O documento foi validado, mas não houve consulta de score, protestos ou restrições. Use o acesso ao painel oficial acima.';
   update();return;
  }
  isLoading=true;update();
