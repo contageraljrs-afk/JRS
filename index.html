@@ -406,7 +406,7 @@ h1,h2,h3,h4,.dashboard-head h1,.dash-hero h2{font-weight:800;letter-spacing:-.75
 <script>
 'use strict';
 const STORE='jrs_smart_rental_demo_v2';
-const cats=['Guindastes','Caminhões Munck','Empilhadeiras','Plataformas Elevatórias','Contêineres','Guinchos','Retroescavadeiras'];
+const cats=['Máquinas e equipamentos','Ferramentas elétricas','Equipamentos para construção','Geradores','Compressores','Andaimes','Plataformas Elevatórias','Empilhadeiras','Guindastes','Caminhões Munck','Contêineres','Guinchos','Retroescavadeiras','Escavadeiras','Equipamentos de limpeza','Equipamentos agrícolas','Equipamentos para eventos','Outros'];
 const seed={
 equipment:[{id:'EQ-001',name:'Guindaste demonstrativo 01',category:'Guindastes',status:'Disponível',capacity:'A cadastrar',serial:'—'},{id:'EQ-002',name:'Munck demonstrativo 01',category:'Caminhões Munck',status:'Em operação',capacity:'A cadastrar',serial:'—'},{id:'EQ-003',name:'Empilhadeira demonstrativa 01',category:'Empilhadeiras',status:'Disponível',capacity:'A cadastrar',serial:'—'},{id:'EQ-004',name:'Plataforma demonstrativa 01',category:'Plataformas Elevatórias',status:'Manutenção',capacity:'A cadastrar',serial:'—'},{id:'EQ-005',name:'Contêiner demonstrativo 01',category:'Contêineres',status:'Reservado',capacity:'A cadastrar',serial:'—'}],
 clients:[{id:'CL-001',name:'Cliente Exemplo A',phone:'(00) 00000-0000',email:'cliente.exemplo@example.com',city:'Cidade Exemplo'},{id:'CL-002',name:'Cliente Exemplo B',phone:'(00) 00000-0000',email:'cliente.b@example.com',city:'Cidade Exemplo'}],
@@ -838,7 +838,7 @@ function equipment(){
  const countVehicles=fleetVisible?db.vehicles.length:0;
  const linked=fleetVisible?db.vehicles.filter(v=>!!linkedRental(v)).length:0;
  const total=db.equipment.length+(fleetVisible?db.vehicles.length-linked:0);
- const filters=[...new Set([...cats,...(fleetVisible?vehicleTypes:[])])];
+ const filters=[...new Set([...cats,...db.equipment.map(x=>x.category).filter(Boolean),...(fleetVisible?vehicleTypes:[])])];
  return header('Equipamentos e frota','Consulta unificada de equipamentos e veículos. Apenas itens liberados manualmente ficam disponíveis para locação.','Novo equipamento',"openEquipment()")
  +'<div class="fleet-overview"><div class="card"><small>Registros integrados</small><div class="bigmetric">'+total+'</div></div><div class="card"><small>Equipamentos no catálogo</small><div class="bigmetric">'+db.equipment.length+'</div></div>'+(fleetVisible?'<div class="card"><small>Veículos no cadastro</small><div class="bigmetric">'+countVehicles+'</div><small>'+linked+' vinculado(s) à locação</small></div>':'')+'</div>'
  +'<div class="note"><b>Integração:</b> veículos e equipamentos aparecem nesta área, sem duplicar os que já estão vinculados. Um carro ou reboque continua no cadastro patrimonial; guindastes e Muncks podem ser vinculados ao catálogo de locação após classificação. Nada é marcado como disponível automaticamente.</div>'
@@ -950,7 +950,7 @@ function openProposal(id,quoteId){
  const p=id?db.proposals.find(x=>x.id===id):defaultProposal(db.quotes.find(q=>q.id===quoteId));
  if(!p)return alert('Proposta não encontrada.');
  const linkedQuotes='<select id="p-quoteId" name="quoteId"><option value="">Proposta independente</option>'+db.quotes.map(q=>'<option value="'+esc(q.id)+'">'+esc(q.id)+' — '+esc(q.client)+'</option>').join('')+'</select>';
- const html='<div class="proposal-editor-intro"><div class="proposal-editor-mark"><span class="platform-brand-name">Gestão de Locações</span></div><p>Preencha as informações comerciais. Campos marcados com * são obrigatórios. Nenhum dado é enviado automaticamente.</p></div>'
+ const html='<div class="proposal-editor-intro"><div class="proposal-editor-mark">'+esc(window.PlatformBrand.name())+'</div><p>Preencha as informações comerciais. Campos marcados com * são obrigatórios. Nenhum dado é enviado automaticamente.</p></div>'
  +'<form id="proposalForm" class="form-grid">'
  +proposalSection('01 · Identificação da proposta')
  +proposalInput('Número da proposta','number','text',true)
@@ -1162,7 +1162,7 @@ function openEquipment(id){
  const e=id?db.equipment.find(x=>x.id===id):null;
  if(id&&!e)return alert('Equipamento não encontrado.');
  openDialog(e?'Editar equipamento':'Cadastrar equipamento','<form id="entryForm" class="form-grid">'
- +field('Nome do equipamento','name')+field('Categoria','category','text',true,cats)
+ +field('Nome do equipamento','name')+'<div class="field"><label for="custom-equipment-category">Categoria *</label><input id="custom-equipment-category" name="category" list="equipment-category-options" maxlength="100" required placeholder="Ex.: Geradores, Ferramentas, Andaimes"><datalist id="equipment-category-options">'+[...new Set([...cats,...db.equipment.map(x=>x.category).filter(Boolean)])].map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist></div>'
  +field('Situação','status','text',true,['Disponível','Reservado','Em operação','Manutenção','Indisponível'])
  +field('Capacidade técnica','capacity','text',false)+field('Identificação / número de frota','serial','text',false)
  +field('Motorista / responsável','driver','text',false)+field('Uso / observação','driverNotes','text',false)
