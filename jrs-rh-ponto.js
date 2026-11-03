@@ -128,7 +128,7 @@ function employeeForm(id){
    if(staff().some(x=>x.id!==id&&normalize(x.name)===normalize(f.name)))throw Error('Já existe colaborador com esse nome. Edite o cadastro existente para evitar duplicidade.');
    if(person)Object.assign(person,f,{updatedAt:new Date().toISOString()});
    else staff().push({id:uid('FUNC'),...f,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-   save();closeDialog();render();
+   save();closeDialog();window.render();
   }catch(err){document.getElementById('rh-employee-error').textContent=err.message||'Não foi possível salvar.'}
  });
 }
@@ -192,7 +192,7 @@ function punchForm(staffId,recordDate){
    const record=existing||{id:uid('PTO'),createdAt:new Date().toISOString()};
    Object.assign(record,f,{targetMinutes:existing?.targetMinutes??targetOf(target),staffName:target.name,updatedAt:new Date().toISOString()});
    if(!existing)punches().push(record);
-   save();closeDialog();render();
+   save();closeDialog();window.render();
   }catch(err){document.getElementById('rh-punch-error').textContent=err.message||'Falha ao registrar o ponto.'}
  });
 }
@@ -227,7 +227,7 @@ function toggleClose(id){
   if(record)Object.assign(record,{closed:true,closedAt:new Date().toISOString(),closedBy:window.JRSAccess?.current()?.name||'RH'});
   else closings().push({id:uid('FOL'),staffId:id,month,closed:true,closedAt:new Date().toISOString(),closedBy:window.JRSAccess?.current()?.name||'RH'});
  }
- save();render();
+ save();window.render();
 }
 function csvCell(raw){
  const s=String(raw??'');
@@ -249,9 +249,9 @@ function exportCSV(){
 }
 window.JRSRH={
  render,employeeForm,punchForm,toggleClose,exportCSV,
- setTab(v){if(['colaboradores','ponto','fechamento'].includes(v)){tab=v;render()}},
- setMonth(v){if(goodMonth(v)){month=v;render()}},
- setStaff(v){selectedStaff=v;render()},
+ setTab(v){if(['colaboradores','ponto','fechamento'].includes(v)){tab=v;window.render()}},
+ setMonth(v){if(goodMonth(v)){month=v;window.render()}},
+ setStaff(v){selectedStaff=v;window.render()},
  search(v){search=v;const root=document.getElementById('rh-people-results');if(root)root.innerHTML=peopleList(staff().filter(x=>[x.name,x.role,x.department,x.employeeCode].join(' ').toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))))},
  __test:{clockStats,summary,targetOf,staff,punches,closings,displayDate,timeVal,isValidDate,month:()=>month}
 };
