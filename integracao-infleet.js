@@ -74,19 +74,19 @@ function render(){
  const linked=hasReport?assets.filter(a=>!!listReading(a).reading).length:null;
  const fresh=hasReport?assets.filter(a=>{const r=listReading(a).reading;return r&&isRecent(r)}).length:null;
  return '<section class="infleet-module">'
-  +'<div class="infleet-heading"><div><span class="eyebrow">JRS GUINDASTES · GESTÃO DE FROTAS</span><h1>Integração Infleet</h1><p>Veículos, equipamentos e dados de rastreamento em uma central, vinculados à frota da JRS.</p></div><a class="btn infleet-portal" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Acessar Infleet ↗</a></div>'
+  +'<div class="infleet-heading"><div><span class="eyebrow">PLATAFORMA DE LOCAÇÕES · GESTÃO DE FROTAS</span><h1>Integração Infleet</h1><p>Veículos, equipamentos e dados de rastreamento em uma central, vinculados à frota cadastrada.</p></div><a class="btn infleet-portal" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Acessar Infleet ↗</a></div>'
   +'<div class="infleet-banner"><div><b>INFLEET</b><span>TELEMETRIA E MONITORAMENTO</span></div><div class="infleet-api-status '+(connection.ready?'ready':'pending')+'"><span class="infleet-light"></span>'+(connection.ready?'API autenticada pelo servidor':connection.checking?'Verificando API...':'API não conectada')+'</div></div>'
-  +'<div class="infleet-stats"><div class="card"><small>Ativos cadastrados na JRS</small><strong>'+assets.length+'</strong><span>Veículos + equipamentos não vinculados</span></div><div class="card"><small>Correspondências Infleet</small><strong>'+(linked===null?'—':linked)+'</strong><span>'+(linked===null?'Aguardando API autenticada':'Por placa ou ID externo')+'</span></div><div class="card"><small>Leituras recentes</small><strong>'+(fresh===null?'—':fresh)+'</strong><span>Atualizadas há até 60 minutos</span></div></div>'
+  +'<div class="infleet-stats"><div class="card"><small>Ativos cadastrados no sistema</small><strong>'+assets.length+'</strong><span>Veículos + equipamentos não vinculados</span></div><div class="card"><small>Correspondências Infleet</small><strong>'+(linked===null?'—':linked)+'</strong><span>'+(linked===null?'Aguardando API autenticada':'Por placa ou ID externo')+'</span></div><div class="card"><small>Leituras recentes</small><strong>'+(fresh===null?'—':fresh)+'</strong><span>Atualizadas há até 60 minutos</span></div></div>'
   +'<div class="infleet-status-note" role="status" aria-live="polite">'+statusText()+'</div>'
   +'<div class="infleet-actions">'+(connection.ready?'<button type="button" class="btn" onclick="JRSInfleet.logout()">Sair da Infleet</button>':'<button type="button" class="btn primary" onclick="JRSInfleet.login()">🔒 Autenticar integração</button>')+
   '<button type="button" class="btn" onclick="JRSInfleet.refresh()" '+(loading||connection.checking?'disabled':'')+'>'+(loading||connection.checking?'Consultando...':'↻ Verificar conexão / atualizar')+'</button><a href="'+HELP+'" target="_blank" rel="noopener noreferrer" class="infleet-docs-link">Documentação oficial ↗</a></div>'
-  +'<div class="infleet-tabs"><button type="button" class="'+(tab==='frota'?'active':'')+'" onclick="JRSInfleet.setTab(\'frota\')">Frota JRS</button><button type="button" class="'+(tab==='config'?'active':'')+'" onclick="JRSInfleet.setTab(\'config\')">Conectar API</button></div>'
+  +'<div class="infleet-tabs"><button type="button" class="'+(tab==='frota'?'active':'')+'" onclick="JRSInfleet.setTab(\'frota\')">Frota cadastrada</button><button type="button" class="'+(tab==='config'?'active':'')+'" onclick="JRSInfleet.setTab(\'config\')">Conectar API</button></div>'
   +(tab==='frota'?renderFleet():renderSetup())+'</section>';
 }
 function statusText(){
  if(connection.error)return '<b>Conexão não disponível.</b> '+E(connection.error);
  if(configuredOnServer===false)return '<b>Servidor Infleet instalado e publicado.</b> Cadastre INFLEET_API_TOKEN e JRS_INFLEET_ACCESS_PASSWORD nas variáveis de ambiente do serviço na Render. Nenhum rastreamento foi consultado.';
- if(!connection.ready)return '<b>Conexão pronta para autenticar.</b> Use “Autenticar integração” com a senha de acesso configurada na Render. Essa senha é separada do login demonstrativo da JRS. O token original da Infleet fica somente no servidor.';
+ if(!connection.ready)return '<b>Conexão pronta para autenticar.</b> Use “Autenticar integração” com a senha de acesso configurada na Render. Essa senha é separada do login demonstrativo deste sistema. O token original da Infleet fica somente no servidor.';
  if(loadError)return '<b>API autenticada.</b> '+E(loadError);
  if(!connection.lastFetch)return '<b>API autenticada.</b> A consulta de veículos ainda está em andamento.';
  return '<b>Dados consultados na Infleet.</b> Atualização em '+E(dateTime(connection.lastFetch))+'. A última posição pode estar atrasada e não indica disponibilidade para locação.'+
@@ -102,7 +102,7 @@ function renderFleet(){
 }
 function tableHTML(assets){
  if(!assets.length)return '<div class="card infleet-no-vehicles">Nenhum veículo ou equipamento cadastrado. Vá para Veículos e frota ou Equipamentos e registre sua frota primeiro.</div>';
- return '<div class="card tablewrap infleet-table-wrap"><table class="table infleet-table"><thead><tr><th>Veículo / equipamento JRS</th><th>Placa</th><th>Vínculo Infleet</th><th>Última informação</th><th>Velocidade / ignição</th><th>Ações</th></tr></thead><tbody>'+
+ return '<div class="card tablewrap infleet-table-wrap"><table class="table infleet-table"><thead><tr><th>Veículo / equipamento</th><th>Placa</th><th>Vínculo Infleet</th><th>Última informação</th><th>Velocidade / ignição</th><th>Ações</th></tr></thead><tbody>'+
  assets.map(a=>{
  const link=getLink(a.key),match=connection.ready?listReading(a):{reading:null,warning:''};
  const r=match.reading,latest=r?dateTime(r.timestamp):'—';
@@ -115,13 +115,13 @@ function tableHTML(assets){
  }).join('')+'</tbody></table></div>';
 }
 function renderSetup(){
- return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Conexão GraphQL da Infleet</h2><p>O servidor <b>JRS Infleet API</b> já foi criado na Render e está conectado ao endereço oficial <code>https://api.infleet.com.br/v1/graphql</code>. Para obter dados reais, faltam somente as credenciais da JRS configuradas diretamente no servidor.</p></div>'
+ return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Conexão GraphQL da Infleet</h2><p>O servidor <b>JRS Infleet API</b> já foi criado na Render e está conectado ao endereço oficial <code>https://api.infleet.com.br/v1/graphql</code>. Para obter dados reais, faltam somente as credenciais da empresa configuradas diretamente no servidor.</p></div>'
  +'<div class="infleet-steps"><div><span>01</span><section><h3>Solicite seu Bearer token à Infleet</h3><p>O token da API GraphQL é fornecido pela Infleet à empresa contratante. Não cole esse token no aplicativo, no GitHub ou neste chat.</p></section></div>'
- +'<div><span>02</span><section><h3>Configure as variáveis seguras na Render</h3><p>Abra o serviço <b>jrs-infleet-api</b> e configure: <code>INFLEET_API_TOKEN</code> (token oficial) e <code>JRS_INFLEET_ACCESS_PASSWORD</code> (senha forte de pelo menos 12 caracteres, escolhida pela JRS). O serviço reiniciará ao aplicar as alterações.</p></section></div>'
- +'<div><span>03</span><section><h3>Autentique a consulta na JRS</h3><p>Volte para esta página, clique em “Autenticar integração” e informe somente a senha de acesso criada por você na Render. O token Infleet ficará guardado no servidor, não no navegador.</p></section></div>'
+ +'<div><span>02</span><section><h3>Configure as variáveis seguras na Render</h3><p>Abra o serviço <b>jrs-infleet-api</b> e configure: <code>INFLEET_API_TOKEN</code> (token oficial) e <code>JRS_INFLEET_ACCESS_PASSWORD</code> (senha forte de pelo menos 12 caracteres, escolhida pela empresa). O serviço reiniciará ao aplicar as alterações.</p></section></div>'
+ +'<div><span>03</span><section><h3>Autentique a consulta no sistema</h3><p>Volte para esta página, clique em “Autenticar integração” e informe somente a senha de acesso criada por você na Render. O token Infleet ficará guardado no servidor, não no navegador.</p></section></div>'
  +'<div><span>04</span><section><h3>Confira placas, leituras e horários</h3><p>A consulta inicial traz até 100 veículos e busca posições da última hora para até 30 veículos. Confira as placas e o horário das posições. Para histórico contínuo, o próximo passo será configurar webhooks.</p></section></div></div>'
  +'<div class="infleet-setup-actions"><a class="btn primary" href="'+BACKEND_PANEL+'" target="_blank" rel="noopener noreferrer">Abrir serviço Infleet na Render ↗</a><a class="btn" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Abrir painel Infleet ↗</a><a class="btn" href="'+HELP+'" target="_blank" rel="noopener noreferrer">Documentação da API ↗</a></div>'
- +'<p class="infleet-footnote">A segurança da consulta Infleet é independente do login local do aplicativo. Seus veículos e operações JRS continuam no mesmo endereço, sem migração de cadastros. A integração Markponto permanece separada no RH.</p></div>';
+ +'<p class="infleet-footnote">A segurança da consulta Infleet é independente do login local do aplicativo. Seus veículos e operações continuam no mesmo endereço, sem migração de cadastros. A integração Markponto permanece separada no RH.</p></div>';
 }
 function login(){
  if(!canView('infleet'))return;
@@ -167,7 +167,7 @@ function editLink(localKey){
  document.getElementById('infleet-link-form').addEventListener('submit',event=>{
   event.preventDefault();const value=clean(new FormData(event.target).get('infleetId'));
   if(value.length>120)return alert('ID inválido.');
-  if(value&&linkStore().some(x=>x.localKey!==localKey&&x.infleetId===value))return alert('Esse ID Infleet já foi associado a outro veículo JRS.');
+  if(value&&linkStore().some(x=>x.localKey!==localKey&&x.infleetId===value))return alert('Esse ID Infleet já foi associado a outro veículo.');
   db.infleetLinks=linkStore().filter(x=>x.localKey!==localKey);
   if(value)db.infleetLinks.push({localKey,infleetId:value,updatedAt:new Date().toISOString()});
   save();closeDialog();window.render();
