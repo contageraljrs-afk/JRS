@@ -1,0 +1,54 @@
+/* JRS GUINDASTES · Ordem de Serviço Comercial — interface 2026 */
+.cos-page{color:#293329;min-width:0}
+.cos-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:1px 0 21px}
+.cos-head h1{margin:5px 0;color:#202c24;font-size:clamp(24px,2.8vw,32px);font-weight:850;letter-spacing:-.9px}
+.cos-head p{margin:0;line-height:1.6;max-width:760px;font-size:12px;color:#758678}
+.cos-head .btn{white-space:nowrap}
+.cos-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 17px}
+.cos-stats>.card{padding:19px!important;background:#fff!important;border:1px solid #e1e7df!important}
+.cos-stats small{font-size:11px;color:#7c8a7e;display:block;font-weight:700}
+.cos-stats strong{display:block;font-size:28px;color:#293b2d;letter-spacing:-.6px;margin-top:8px}
+.cos-hint{font-size:11px;line-height:1.7;color:#7c692a;background:#fffae9;border:1px solid #eddda8;border-radius:9px;padding:13px 15px;margin-bottom:15px}
+.cos-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
+.cos-toolbar .search{flex:1;min-width:200px}
+.cos-toolbar select{min-width:190px}
+.cos-table-wrap{padding:0!important;overflow-x:auto;border:1px solid #e1e8df!important}
+.cos-table{min-width:920px}
+.cos-table th{white-space:nowrap;color:#748376;font-size:10px;letter-spacing:.4px;background:#f6f9f5}
+.cos-table td{vertical-align:middle;font-size:11px;line-height:1.5;padding:13px 10px;min-width:100px}
+.cos-table td b{font-weight:800;color:#26372b}
+.cos-table td small{font-size:10px;color:#849286;display:block;margin-top:4px;overflow-wrap:anywhere}
+.cos-table .cos-address{color:#425748;display:block;max-width:300px;white-space:normal;overflow-wrap:anywhere}
+.cos-table-links{margin-top:5px}
+.cos-action-buttons{display:flex;gap:5px;flex-wrap:wrap}
+.cos-action-buttons .btn{font-size:10px;white-space:nowrap;padding:6px 8px}
+.cos-status{display:inline-flex;font-size:10px;font-weight:850;white-space:nowrap;padding:5px 8px;border-radius:99px;border:1px solid #dce8d8;background:#f2f8ef;color:#597a59}
+.cos-status.waiting{background:#fff7df;color:#927222;border-color:#f0dfa9}
+.cos-status.progress{background:#eaf5eb;color:#34794c;border-color:#cde8d2}
+.cos-status.complete{background:#e9f7ee;color:#276f42;border-color:#c5e5ce}
+.cos-status.cancel{background:#f9eded;color:#a65b53;border-color:#edd0ca}
+.cos-routes{display:flex;align-items:center;gap:5px 9px;flex-wrap:wrap}
+.cos-routes a{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid #c9e0cb;border-radius:6px;background:#f1f9f1;color:#236739!important;font-size:10px;font-weight:800;text-decoration:none!important;white-space:nowrap}
+.cos-routes a:hover{background:#e1f0e1;border-color:#b4d5b9}
+.cos-linked-button{background:#f7efcf!important;border-color:#e5d19a!important;color:#7c641e!important;white-space:nowrap}
+.cos-linked-button:hover{background:#f4e3a4!important}
+.cos-form-intro{border-radius:10px;border:1px solid #e6e6d3;background:#fbfaf3;padding:15px;margin-bottom:16px}
+.cos-form-intro b{display:block;font-size:14px;font-weight:850;color:#2a392e}
+.cos-form-intro p{font-size:11px;line-height:1.6;color:#718172;margin:6px 0 0}
+.cos-section{border-bottom:1px solid #e0e5de;padding:7px 0;margin:6px 0}
+.cos-section h3{margin:0;color:#526353;font-size:12px;font-weight:900;letter-spacing:.4px}
+#cos-form #cos-itemsToBring{border:2px solid #d65348!important;background:#fff9f8!important;color:#a72922!important;font-weight:800;min-height:90px}
+#cos-form #cos-itemsToBring::placeholder{color:#be8984;font-weight:600}
+#cos-form label[for="cos-itemsToBring"]{color:#b93b31;font-weight:900}
+.cos-form-helper{color:#86713a;font-size:11px;line-height:1.6;border-radius:9px;padding:11px 13px;background:#fff9e9;border:1px solid #ede0b4}
+#cos-error{color:#bd3a32;font-size:11px;font-weight:750}
+.cos-form-actions{gap:8px;flex-wrap:wrap}
+.cos-detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cos-detail-item{background:#f7faf5;border:1px solid #e1e9df;border-radius:9px;padding:13px;min-width:0;overflow-wrap:anywhere}
+.cos-detail-item small{display:block;color:#859286;font-size:10px;line-height:1.4;margin-bottom:5px;text-transform:uppercase;font-weight:850}
+.cos-detail-item strong{color:#304834;font-weight:750;line-height:1.6;font-size:12px}
+.cos-detail-item.alert{grid-column:1/-1;border:2px solid #d75a52;background:#fff5f3}
+.cos-detail-item.alert small,.cos-detail-item.alert strong{color:#b02e26!important}
+.cos-detail-routes{margin:17px 0}
+@media(max-width:750px){.cos-head .btn{width:100%}.cos-stats{gap:8px}.cos-stats>.card{padding:12px!important}.cos-stats strong{font-size:24px}.cos-toolbar select{flex:1}.cos-toolbar .search{min-width:100%}.cos-detail{grid-template-columns:1fr}.cos-detail-item.alert{grid-column:auto}}
+@media print{.cos-routes a{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
