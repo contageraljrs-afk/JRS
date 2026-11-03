@@ -18,6 +18,7 @@ const dateText=s=>dateOK(s)?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'Nã
 const timeOK=s=>/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s||'');
 const mapsUrl=address=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(address)+'&travelmode=driving';
 const wazeUrl=address=>'https://www.waze.com/ul?q='+encodeURIComponent(address)+'&navigate=yes';
+const addressLink=address=>trim(address)?'<a class="cos-address-link" target="_blank" rel="noopener noreferrer" title="Abrir endereço no Google Maps" href="'+E(mapsUrl(trim(address)))+'">📍 '+E(trim(address))+' ↗</a>':'Endereço pendente';
 const routeLinks=(address,className='')=>{
  const addressText=trim(address);if(!addressText)return '';
  return '<div class="cos-routes '+E(className)+'">'+
@@ -54,7 +55,7 @@ function tableRows(){
  return '<div class="card tablewrap cos-table-wrap"><table class="table cos-table"><thead><tr><th>OS / Proposta</th><th>Cliente / contato</th><th>Saída</th><th>Endereço / rota</th><th>Situação</th><th>Ações</th></tr></thead><tbody>'+
  (items.length?items.map(o=>'<tr><td><b>'+E(o.number||o.id)+'</b><small>'+E(o.proposalNumber||getProposal(o.proposalId)?.number||(o.proposalId?'Proposta não localizada':'Sem proposta vinculada'))+'</small></td><td><b>'+E(o.client||'—')+'</b><small>'+E(o.requester||'Sem solicitante')+(o.responsiblePhone?' · '+E(o.responsiblePhone):'')+'</small></td>'+
  '<td><b>'+dateText(o.serviceDate)+'</b><small>Saída: '+E(o.departureTime||'—')+'</small></td>'+
- '<td><span class="cos-address">'+E(o.address||'Endereço pendente')+'</span>'+routeLinks(o.address,'cos-table-links')+'</td>'+
+ '<td><span class="cos-address">'+addressLink(o.address)+'</span>'+routeLinks(o.address,'cos-table-links')+'</td>'+
  '<td><span class="cos-status '+(o.status==='Concluída'?'complete':o.status==='Cancelada'?'cancel':o.status==='Aguardando confirmação'?'waiting':'progress')+'">'+E(o.status||'—')+'</span></td>'+
  '<td><div class="actions cos-action-buttons"><button type="button" class="btn tiny" onclick="JRSCommercialOS.view(\''+E(o.id)+'\')">Ver OS</button><button type="button" class="btn tiny" onclick="JRSCommercialOS.print(\''+E(o.id)+'\')">Imprimir / PDF</button>'+(canEdit('commercialOS')?'<button type="button" class="btn tiny" onclick="JRSCommercialOS.open(null,\''+E(o.id)+'\')">Editar</button>'+(o.proposalId?'':'<button type="button" class="btn tiny cos-link-later" onclick="JRSCommercialOS.link(\''+E(o.id)+'\')">Vincular proposta</button>'):'')+'</div></td></tr>').join(''):
  '<tr><td colspan="6" class="empty">Nenhuma OS comercial registrada. Crie uma OS mesmo que a proposta ainda não exista.</td></tr>')+'</tbody></table></div>';
@@ -206,7 +207,7 @@ function view(id){
   ['Observações',o.notes],['Situação',o.status]
  ];
  openDialog('OS comercial · '+(o.number||o.id),'<div class="cos-detail">'+details.map(([title,value])=>
-  '<div class="cos-detail-item '+(title==='O QUE PRECISA LEVAR'?'alert':'')+'"><small>'+E(title)+'</small><strong>'+E(value||'—').replace(/\r?\n/g,'<br>')+'</strong></div>').join('')+'</div>'+
+  '<div class="cos-detail-item '+(title==='O QUE PRECISA LEVAR'?'alert':'')+'"><small>'+E(title)+'</small><strong>'+(title==='Endereço do serviço'?addressLink(value):E(value||'—').replace(/\r?\n/g,'<br>'))+'</strong></div>').join('')+'</div>'+
  '<div class="cos-detail-routes">'+routeLinks(o.address)+'</div>'+
  '<div class="actions cos-form-actions">'+(canEdit('commercialOS')?'<button type="button" class="btn" onclick="JRSCommercialOS.open(null,\''+E(o.id)+'\')">Editar OS</button>'+(o.proposalId?'':'<button type="button" class="btn cos-link-later" onclick="JRSCommercialOS.link(\''+E(o.id)+'\')">Vincular proposta</button>'):'')+
  '<button type="button" class="btn primary" onclick="JRSCommercialOS.print(\''+E(o.id)+'\')">Imprimir / Salvar PDF</button><button type="button" class="btn" onclick="closeDialog()">Fechar</button></div>');
