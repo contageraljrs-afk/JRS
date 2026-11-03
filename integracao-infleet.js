@@ -5,7 +5,10 @@
  */
 (function(){
 'use strict';
-const API='/api/integracoes/infleet';
+const API='https://jrs-infleet-api.onrender.com/api/integracoes/infleet';
+const BACKEND_PANEL='https://dashboard.render.com/web/srv-dbkmaq7b9u1s73fqpdsg';
+let sessionToken='';
+let configuredOnServer=null,reportPartial=false,reportNotice='';
 const PORTAL='https://app.infleet.com.br/';
 const HELP='https://help.infleet.com.br/pt-BR/articles/16447926-como-integrar-seus-sistemas-a-infleet-api-graphql-e-webhook';
 let connection={checked:false,checking:false,ready:false,error:'',lastFetch:''};
@@ -75,15 +78,19 @@ function render(){
   +'<div class="infleet-banner"><div><b>INFLEET</b><span>TELEMETRIA E MONITORAMENTO</span></div><div class="infleet-api-status '+(connection.ready?'ready':'pending')+'"><span class="infleet-light"></span>'+(connection.ready?'API autenticada pelo servidor':connection.checking?'Verificando API...':'API não conectada')+'</div></div>'
   +'<div class="infleet-stats"><div class="card"><small>Ativos cadastrados na JRS</small><strong>'+assets.length+'</strong><span>Veículos + equipamentos não vinculados</span></div><div class="card"><small>Correspondências Infleet</small><strong>'+(linked===null?'—':linked)+'</strong><span>'+(linked===null?'Aguardando API autenticada':'Por placa ou ID externo')+'</span></div><div class="card"><small>Leituras recentes</small><strong>'+(fresh===null?'—':fresh)+'</strong><span>Atualizadas há até 60 minutos</span></div></div>'
   +'<div class="infleet-status-note" role="status" aria-live="polite">'+statusText()+'</div>'
-  +'<div class="infleet-actions"><button type="button" class="btn" onclick="JRSInfleet.refresh()" '+(loading||connection.checking?'disabled':'')+'>'+(loading||connection.checking?'Consultando...':'↻ Verificar conexão / atualizar')+'</button><a href="'+HELP+'" target="_blank" rel="noopener noreferrer" class="infleet-docs-link">Documentação oficial ↗</a></div>'
+  +'<div class="infleet-actions">'+(connection.ready?'<button type="button" class="btn" onclick="JRSInfleet.logout()">Sair da Infleet</button>':'<button type="button" class="btn primary" onclick="JRSInfleet.login()">🔒 Autenticar integração</button>')+
+  '<button type="button" class="btn" onclick="JRSInfleet.refresh()" '+(loading||connection.checking?'disabled':'')+'>'+(loading||connection.checking?'Consultando...':'↻ Verificar conexão / atualizar')+'</button><a href="'+HELP+'" target="_blank" rel="noopener noreferrer" class="infleet-docs-link">Documentação oficial ↗</a></div>'
   +'<div class="infleet-tabs"><button type="button" class="'+(tab==='frota'?'active':'')+'" onclick="JRSInfleet.setTab(\'frota\')">Frota JRS</button><button type="button" class="'+(tab==='config'?'active':'')+'" onclick="JRSInfleet.setTab(\'config\')">Conectar API</button></div>'
   +(tab==='frota'?renderFleet():renderSetup())+'</section>';
 }
 function statusText(){
  if(connection.error)return '<b>Conexão não disponível.</b> '+E(connection.error);
- if(!connection.ready)return '<b>Infleet ainda não conectada.</b> A JRS pode abrir o portal oficial e organizar os vínculos, mas não há posições, velocidade ou eventos reais dentro deste aplicativo até ativar a API autenticada no servidor. Nenhuma consulta à frota foi realizada.';
- if(loadError)return '<b>API conectada.</b> '+E(loadError);
- return '<b>Dados recebidos da Infleet.</b> Atualização manual em '+E(dateTime(connection.lastFetch))+'. A última posição de cada veículo pode estar atrasada e não significa disponibilidade para locação.';
+ if(configuredOnServer===false)return '<b>Servidor Infleet instalado e publicado.</b> Cadastre INFLEET_API_TOKEN e JRS_INFLEET_ACCESS_PASSWORD nas variáveis de ambiente do serviço na Render. Nenhum rastreamento foi consultado.';
+ if(!connection.ready)return '<b>Conexão pronta para autenticar.</b> Use “Autenticar integração” com a senha de acesso configurada na Render. Essa senha é separada do login demonstrativo da JRS. O token original da Infleet fica somente no servidor.';
+ if(loadError)return '<b>API autenticada.</b> '+E(loadError);
+ if(!connection.lastFetch)return '<b>API autenticada.</b> A consulta de veículos ainda está em andamento.';
+ return '<b>Dados consultados na Infleet.</b> Atualização em '+E(dateTime(connection.lastFetch))+'. A última posição pode estar atrasada e não indica disponibilidade para locação.'+
+ (reportPartial?'<br><b>Atenção:</b> relatório parcial. '+E(reportNotice||'Algumas informações não puderam ser verificadas.'):'');
 }
 function renderFleet(){
  const assets=localAssets();
@@ -108,13 +115,46 @@ function tableHTML(assets){
  }).join('')+'</tbody></table></div>';
 }
 function renderSetup(){
- return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Como ativar a integração de verdade</h2><p>O aplicativo JRS está publicado como site estático na Render. Para sincronizar dados da Infleet com segurança, será necessário um backend autenticado. O token da Infleet <b>não deve ser inserido nesta tela, em JavaScript ou no GitHub</b>.</p></div>'
- +'<div class="infleet-steps"><div><span>01</span><section><h3>Solicite acesso de API à Infleet</h3><p>A empresa precisa solicitar um <b>Bearer token</b> à Infleet, liberado para a sua conta e os veículos correspondentes. A documentação oficial fica em <a href="https://docs.api.infleet.com.br/boas-vindas" target="_blank" rel="noopener noreferrer">docs.api.infleet.com.br</a>.</p></section></div>'
- +'<div><span>02</span><section><h3>Implante o conector seguro da JRS</h3><p>Um servidor com autenticação real guardará o token como segredo do ambiente. Ele consultará a API GraphQL da Infleet e entregará apenas dados normalizados a funcionários autorizados.</p></section></div>'
- +'<div><span>03</span><section><h3>Vincule os veículos e valide os resultados</h3><p>O sistema verificará placas e IDs da Infleet. Faça um teste inicial com uma placa e confira horários e posições antes de liberar a frota inteira.</p></section></div>'
- +'<div><span>04</span><section><h3>Webhooks, se desejar acompanhamento contínuo</h3><p>Para telemetria em tempo real, configure no painel Infleet um endpoint HTTPS autenticado e com deduplicação de eventos. A API serve para consultas sob demanda; o webhook, para histórico contínuo.</p></section></div></div>'
- +'<div class="infleet-setup-actions"><a class="btn primary" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Abrir painel Infleet ↗</a><a class="btn" href="'+HELP+'" target="_blank" rel="noopener noreferrer">Ler guia de integração ↗</a></div>'
- +'<p class="infleet-footnote">A integração com Markponto é independente: o ponto pertence ao RH; a Infleet pertence à gestão da frota. As duas podem coexistir sem compartilhar credenciais.</p></div>';
+ return '<div class="infleet-setup"><div class="infleet-setup-intro"><h2>Conexão GraphQL da Infleet</h2><p>O servidor <b>JRS Infleet API</b> já foi criado na Render e está conectado ao endereço oficial <code>https://api.infleet.com.br/v1/graphql</code>. Para obter dados reais, faltam somente as credenciais da JRS configuradas diretamente no servidor.</p></div>'
+ +'<div class="infleet-steps"><div><span>01</span><section><h3>Solicite seu Bearer token à Infleet</h3><p>O token da API GraphQL é fornecido pela Infleet à empresa contratante. Não cole esse token no aplicativo, no GitHub ou neste chat.</p></section></div>'
+ +'<div><span>02</span><section><h3>Configure as variáveis seguras na Render</h3><p>Abra o serviço <b>jrs-infleet-api</b> e configure: <code>INFLEET_API_TOKEN</code> (token oficial) e <code>JRS_INFLEET_ACCESS_PASSWORD</code> (senha forte de pelo menos 12 caracteres, escolhida pela JRS). O serviço reiniciará ao aplicar as alterações.</p></section></div>'
+ +'<div><span>03</span><section><h3>Autentique a consulta na JRS</h3><p>Volte para esta página, clique em “Autenticar integração” e informe somente a senha de acesso criada por você na Render. O token Infleet ficará guardado no servidor, não no navegador.</p></section></div>'
+ +'<div><span>04</span><section><h3>Confira placas, leituras e horários</h3><p>A consulta inicial traz até 100 veículos e busca posições da última hora para até 30 veículos. Confira as placas e o horário das posições. Para histórico contínuo, o próximo passo será configurar webhooks.</p></section></div></div>'
+ +'<div class="infleet-setup-actions"><a class="btn primary" href="'+BACKEND_PANEL+'" target="_blank" rel="noopener noreferrer">Abrir serviço Infleet na Render ↗</a><a class="btn" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Abrir painel Infleet ↗</a><a class="btn" href="'+HELP+'" target="_blank" rel="noopener noreferrer">Documentação da API ↗</a></div>'
+ +'<p class="infleet-footnote">A segurança da consulta Infleet é independente do login local do aplicativo. Seus veículos e operações JRS continuam no mesmo endereço, sem migração de cadastros. A integração Markponto permanece separada no RH.</p></div>';
+}
+function login(){
+ if(!canView('infleet'))return;
+ openDialog('Acesso seguro · Infleet',
+ '<div class="infleet-dialog-lead"><b>Autenticar integração da frota</b><p>Informe a senha definida em <b>JRS_INFLEET_ACCESS_PASSWORD</b>, no serviço Infleet da Render. Não utilize aqui o token Bearer fornecido pela Infleet.</p></div>'+
+ '<form id="infleet-auth-form"><div class="field"><label for="infleet-auth-password">Senha de acesso à integração</label><input id="infleet-auth-password" type="password" name="password" required minlength="12" autocomplete="off" placeholder="Senha configurada na Render"></div>'+
+ '<div class="infleet-dialog-note" id="infleet-auth-error" role="alert">A sessão permanece somente nesta aba e não salva sua senha.</div>'+
+ '<div class="actions"><button type="submit" class="btn primary">Conectar Infleet</button><button type="button" class="btn" onclick="closeDialog()">Cancelar</button></div></form>');
+ document.getElementById('infleet-auth-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.target,output=document.getElementById('infleet-auth-error');
+  const pass=String(form.elements.namedItem('password')?.value||'');
+  if(pass.length<12){output.textContent='Informe a senha de acesso de pelo menos 12 caracteres.';return}
+  const button=form.querySelector('button[type=submit]');button.disabled=true;
+  output.textContent='Autenticando...';
+  try{
+   const r=await fetch(API+'/login',{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({password:pass})});
+   const result=await r.json();
+   if(!r.ok)throw Error(result.error||'Falha ao autenticar a integração.');
+   if(!/^[0-9a-f]{64}$/.test(result.sessionToken||''))throw Error('Sessão retornada pelo servidor inválida.');
+   sessionToken=result.sessionToken;
+   connection.checked=false;connection.ready=false;connection.error='';
+   closeDialog();await checkConnection(true);
+  }catch(error){output.textContent=error.message||'Falha ao autenticar.'}
+  finally{button.disabled=false;form.elements.namedItem('password').value=''}
+ });
+}
+function logout(){
+ sessionToken='';connection.ready=false;connection.checked=true;connection.error='';
+ readings=[];connection.lastFetch='';loadError='';
+ window.render();
 }
 function editLink(localKey){
  if(!requireEdit('infleet'))return;
@@ -134,22 +174,36 @@ function editLink(localKey){
  });
 }
 async function statusJSON(path){
- const response=await fetch(API+path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
- if(!response.ok)throw Error('Servidor de integração ainda não configurado.');
+ const headers={Accept:'application/json'};
+ if(sessionToken)headers.Authorization='Bearer '+sessionToken;
+ const response=await fetch(API+path,{method:'GET',mode:'cors',credentials:'omit',cache:'no-store',headers});
  const type=response.headers?.get?.('content-type')||'';
- if(!type.includes('application/json'))throw Error('Resposta não é uma API de integração válida.');
- return response.json();
+ if(!type.includes('application/json'))throw Error('Servidor não respondeu em JSON.');
+ const data=await response.json();
+ if(!response.ok)throw Error(data?.error||'Servidor da integração não está disponível.');
+ return data;
 }
 async function checkConnection(force=false){
  if(connection.checking||loading)return;
  if(connection.checked&&!force)return;
  connection.checking=true;connection.error='';const seq=++generation;
  try{
-  const response=await statusJSON('/status');
+  const setup=await statusJSON('/config');
   if(seq!==generation)return;
-  connection.ready=response?.connected===true&&response?.provider==='Infleet'&&response?.auth==='server';
-  if(!connection.ready){readings=[];connection.lastFetch='';}
- }catch(_){if(seq!==generation)return;connection.ready=false;readings=[];connection.lastFetch='';}
+  configuredOnServer=setup?.provider==='Infleet'&&setup?.configured===true;
+  if(!configuredOnServer||!sessionToken){connection.ready=false;readings=[];connection.lastFetch='';}
+  else{
+   const response=await statusJSON('/status');
+   if(seq!==generation)return;
+   connection.ready=response?.connected===true&&response?.provider==='Infleet'&&response?.auth==='server';
+   if(!connection.ready){readings=[];connection.lastFetch='';}
+  }
+ }catch(err){
+  if(seq!==generation)return;
+  connection.ready=false;readings=[];connection.lastFetch='';
+  connection.error=err.message||'Falha ao acessar o backend.';
+  if(/Autenticação necessária/i.test(connection.error))sessionToken='';
+ }
  finally{if(seq===generation){connection.checked=true;connection.checking=false;rerenderIfVisible();}}
  if(seq===generation&&connection.ready)await loadFleet();
 }
@@ -163,6 +217,7 @@ async function loadFleet(){
   const normalized=response.vehicles.map(safeReading).filter(Boolean);
   const ids=new Set();readings=normalized.filter(v=>{if(ids.has(v.id))return false;ids.add(v.id);return true;});
   connection.lastFetch=typeof response.fetchedAt==='string'&&Number.isFinite(Date.parse(response.fetchedAt))?response.fetchedAt:new Date().toISOString();
+  reportPartial=response.partial===true;reportNotice=typeof response.message==='string'?response.message:'';
  }catch(err){if(seq!==generation)return;readings=[];loadError=err.message||'Não foi possível obter dados da frota.';}
  finally{if(seq===generation){loading=false;rerenderIfVisible();}}
 }
@@ -176,8 +231,8 @@ async function refresh(){
  rerenderIfVisible();await checkConnection(true);
 }
 window.JRSInfleet={
- render,refresh,editLink,setTab(v){tab=v==='config'?'config':'frota';window.render()},
+ render,refresh,editLink,login,logout,setTab(v){tab=v==='config'?'config':'frota';window.render()},
  search(v){search=String(v||'');const t=document.getElementById('infleet-fleet-results');if(t)t.innerHTML=tableHTML(localAssets().filter(x=>[x.name,x.display,x.group].join(' ').toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))));},
- __test:{localAssets,plate,safeReading,listReading,isRecent,checkConnection,loadFleet,connection:()=>({...connection}),readings:()=>readings.slice()}
+ __test:{localAssets,plate,safeReading,listReading,isRecent,checkConnection,loadFleet,connection:()=>({...connection}),readings:()=>readings.slice(),isConfigured:()=>configuredOnServer,hasSession:()=>Boolean(sessionToken)}
 };
 })();
