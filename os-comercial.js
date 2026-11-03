@@ -248,7 +248,7 @@ function print(id){
  '<div class="foot">JRS GUINDASTES · Documento operacional vinculado à proposta '+E(o.proposalNumber||'Sem proposta vinculada')+'. Registro salvo neste navegador. Emissão: '+E(new Date().toLocaleString('pt-BR'))+'</div></article></body></html>';
  win.document.open();win.document.write(body);win.document.close();win.focus();
 }
-function elementInner(label,value){return '<small>'+E(label)+'</small><strong>'+E(value||'—').replace(/\r?\n/g,'<br>')+'</strong>'}
+function elementInner(label,value){return '<small>'+E(label)+'</small><strong>'+(label==='Endereço completo'&&trim(value)?'<a target="_blank" rel="noopener noreferrer" style="color:#2d583f;text-decoration:underline" href="'+E(mapsUrl(trim(value)))+'">📍 '+E(value)+' ↗</a>':E(value||'—').replace(/\r?\n/g,'<br>'))+'</strong>'}
 window.JRSCommercialOS={
  render,open,link,view,print,osForProposal,prefillFromProposal,
  search(v){search=String(v??'');const node=document.getElementById('cos-result');if(node)node.innerHTML=tableRows()},
