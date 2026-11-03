@@ -231,7 +231,7 @@ function toggleClose(id){
 }
 function csvCell(raw){
  const s=String(raw??'');
- return '"'+(/^[=+\-@\t\r]/.test(s)?"'":'')+s.replace(/"/g,'""')+'"';
+ return '"'+(/^\s*[=+\-@]/.test(s)?"'":'')+s.replace(/"/g,'""')+'"';
 }
 function exportCSV(){
  if(!canView('hr'))return;
