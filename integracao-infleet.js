@@ -59,7 +59,7 @@ function listReading(local){
  return {reading:null,warning:local.plate?'Sem correspondência nesta consulta.':'Cadastre a placa ou informe o ID Infleet.'};
 }
 function isRecent(r){
- if(!r.timestamp||!Number.isFinite(Date.parse(r.timestamp)))return false;
+ if(r.positionValid===false||!r.timestamp||!Number.isFinite(Date.parse(r.timestamp)))return false;
  const delay=Date.now()-Date.parse(r.timestamp);
  return delay>=0&&delay<=60*60*1000;
 }
@@ -67,8 +67,9 @@ function render(){
  if(!canView('infleet'))return '<div class="card">Seu perfil não possui acesso à frota.</div>';
  if(!connection.checked&&!connection.checking)Promise.resolve().then(checkConnection);
  const assets=localAssets();
- const linked=connection.ready?assets.filter(a=>!!listReading(a).reading).length:null;
- const fresh=connection.ready?assets.filter(a=>{const r=listReading(a).reading;return r&&isRecent(r)}).length:null;
+ const hasReport=connection.ready&&!!connection.lastFetch&&!loadError;
+ const linked=hasReport?assets.filter(a=>!!listReading(a).reading).length:null;
+ const fresh=hasReport?assets.filter(a=>{const r=listReading(a).reading;return r&&isRecent(r)}).length:null;
  return '<section class="infleet-module">'
   +'<div class="infleet-heading"><div><span class="eyebrow">JRS GUINDASTES · GESTÃO DE FROTAS</span><h1>Integração Infleet</h1><p>Veículos, equipamentos e dados de rastreamento em uma central, vinculados à frota da JRS.</p></div><a class="btn infleet-portal" href="'+PORTAL+'" target="_blank" rel="noopener noreferrer">Acessar Infleet ↗</a></div>'
   +'<div class="infleet-banner"><div><b>INFLEET</b><span>TELEMETRIA E MONITORAMENTO</span></div><div class="infleet-api-status '+(connection.ready?'ready':'pending')+'"><span class="infleet-light"></span>'+(connection.ready?'API autenticada pelo servidor':connection.checking?'Verificando API...':'API não conectada')+'</div></div>'
