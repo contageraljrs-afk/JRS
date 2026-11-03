@@ -111,7 +111,7 @@ function render(isHome){
   '<label class="fboard-weekend-toggle"><input type="checkbox" '+(showWeekend?'checked':'')+' onchange="JRSBoard.weekend(this.checked)"> Sáb. e dom.</label>'+
   (!isHome&&editable?'<button type="button" class="btn tiny" onclick="JRSBoard.manage()">Gerenciar linhas</button>':'')+
   '<button type="button" class="btn tiny" onclick="window.print()">Imprimir</button></div></div>';
- const cols='<tr><th class="fboard-corner"><span>EQUIPAMENTOS</span><small>FROTA JRS</small></th>'+dates.map(d=>'<th class="fboard-date-head '+(d.date===today?'fboard-is-today':'')+(d.date===availabilityDay?' fboard-is-selected':'')+'"><button type="button" onclick="JRSBoard.pickDate(\''+d.date+'\')" title="Ver disponíveis em '+d.human+'"><b>'+d.day+'</b><span>'+d.human+'</span></button></th>').join('')+'</tr>';
+ const cols='<tr><th class="fboard-corner"><span>EQUIPAMENTOS</span><small>FROTA CADASTRADA</small></th>'+dates.map(d=>'<th class="fboard-date-head '+(d.date===today?'fboard-is-today':'')+(d.date===availabilityDay?' fboard-is-selected':'')+'"><button type="button" onclick="JRSBoard.pickDate(\''+d.date+'\')" title="Ver disponíveis em '+d.human+'"><b>'+d.day+'</b><span>'+d.human+'</span></button></th>').join('')+'</tr>';
  let lastGroup='';
  const htmlRows=displayed.map(row=>{
   let groupHeader='';
@@ -243,7 +243,7 @@ function rowForm(rowId){
  const vehicleOptions=[{id:'',text:'Nenhum veículo vinculado'}].concat((canView('vehicles')?db.vehicles:[]).map(v=>({id:v.id,text:v.plate+' · '+(v.makeModel||'Modelo não informado')})));
  const equipmentOptions=[{id:'',text:'Nenhum equipamento vinculado'}].concat(db.equipment.map(e=>({id:e.id,text:e.name+(e.serial?' · '+e.serial:'')})));
  const opts=(values,selected)=>values.map(v=>'<option value="'+esc(v.id)+'" '+(v.id===selected?'selected':'')+'>'+esc(v.text)+'</option>').join('');
- const html='<p class="fboard-dialog-summary">Vincule os códigos da lousa (G1, M1 etc.) aos cadastros reais da JRS. Isso permite que reservas e operações apareçam automaticamente no quadro.</p>'+
+ const html='<p class="fboard-dialog-summary">Vincule os códigos da lousa (G1, M1 etc.) aos cadastros reais da empresa. Isso permite que reservas e operações apareçam automaticamente no quadro.</p>'+
  '<form id="fleetBoardRowForm" class="form-grid">'+
  '<div class="field"><label for="fboard-code">Identificação na lousa *</label><input id="fboard-code" name="label" maxlength="24" required value="'+esc(def.label)+'" placeholder="Ex.: M7, G5, Carreta"></div>'+
  '<div class="field"><label for="fboard-category">Grupo *</label><select name="group" id="fboard-category">'+GROUPS.map(g=>'<option '+(g===def.group?'selected':'')+'>'+esc(g)+'</option>').join('')+'</select></div>'+
@@ -280,7 +280,7 @@ function removeRow(id){
 }
 function manage(){
  if(!requireEdit('operations'))return;ensureData();
- openDialog('Gerenciar linhas da lousa','<p class="fboard-dialog-summary">Essas são as identificações que aparecem na coluna esquerda. Associe cada linha a um equipamento da JRS e acrescente novas linhas quando necessário.</p>'+
+ openDialog('Gerenciar linhas da lousa','<p class="fboard-dialog-summary">Essas são as identificações que aparecem na coluna esquerda. Associe cada linha a um equipamento da frota e acrescente novas linhas quando necessário.</p>'+
  '<div class="fboard-manage-list">'+rows().map(r=>'<div class="fboard-manage-row"><div><b>'+esc(r.label)+'</b><small>'+esc(r.group)+'</small></div><button class="btn tiny" onclick="JRSBoard.editRow(\''+esc(r.id)+'\')">Editar / Vincular</button></div>').join('')+'</div>'+
  '<div class="actions" style="margin-top:15px"><button class="btn primary" onclick="JRSBoard.editRow()">＋ Adicionar linha</button><button class="btn" onclick="closeDialog()">Fechar</button></div>');
 }
