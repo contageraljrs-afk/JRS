@@ -1,4 +1,4 @@
-/* Plataforma de Locações - galeria local de equipamentos, versão 1.
+/* JRS GUINDASTES - galeria local de equipamentos, versão 1.
    As imagens permanecem no IndexedDB deste navegador; não são enviadas ao GitHub. */
 (function(){
 'use strict';
