@@ -1380,12 +1380,12 @@ body.jrs-unlocked #jrs-auth{display:none!important}
     </div>
     <form id="jrs-auth-form" autocomplete="on" style="display:none">
       <div id="jrs-auth-name-box" style="display:none"><label for="jrs-auth-name">Nome do administrador</label><input id="jrs-auth-name" name="name" maxlength="100" autocomplete="name" placeholder="Seu nome"></div>
-      <label for="jrs-auth-email">E-mail do administrador</label><input type="email" required id="jrs-auth-email" name="email" maxlength="160" autocomplete="username" placeholder="seuemail@empresa.com">
+      <label for="jrs-auth-email">E-mail da sua conta JRS</label><input type="email" required id="jrs-auth-email" name="username" maxlength="160" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="seuemail@empresa.com">
       <label for="jrs-auth-password">Senha</label><div class="password-line"><input type="password" minlength="10" required id="jrs-auth-password" name="password" autocomplete="current-password" placeholder="Digite sua senha"><button type="button" class="auth-eye" id="jrs-auth-toggle" aria-label="Mostrar senha">Mostrar</button></div>
       <div id="jrs-auth-confirm-box" style="display:none"><label for="jrs-auth-confirm">Confirme sua senha</label><input type="password" id="jrs-auth-confirm" name="confirm" autocomplete="new-password" placeholder="Repita sua senha"></div>
-      <label class="auth-remember-label" for="jrs-auth-remember"><input type="checkbox" id="jrs-auth-remember"><span><strong>Salvar senha e entrar automaticamente</strong><small>Marque para abrir o JRS sem digitar e-mail ou senha novamente por até 30 dias neste navegador. O acesso é salvo, não a senha em texto aberto. Use apenas no seu dispositivo.</small></span></label>
+      <label class="auth-remember-label" for="jrs-auth-remember"><input type="checkbox" id="jrs-auth-remember"><span><strong>Salvar meu acesso e lembrar a senha</strong><small>Entrar automaticamente por até 30 dias neste navegador. A senha pode ser salva pelo gerenciador de senhas do navegador, não em texto aberto no JRS. Use apenas no seu dispositivo pessoal.</small></span></label>
       <button type="submit" class="auth-submit" id="jrs-auth-submit">ENTRAR NO PAINEL →</button>
-      <div class="auth-message" role="alert" id="jrs-auth-error"></div>
+      <div class="auth-message" role="alert" id="jrs-auth-error"></div><p class="auth-hint" id="jrs-auth-password-manager-hint">Depois de entrar, aceite a opção de salvar senha oferecida pelo navegador. Na próxima vez, ele poderá preencher sua senha ao selecionar o e-mail.</p>
     </form>
     <p class="auth-hint" id="jrs-auth-hint"></p>
     <div class="auth-secure"><strong>Ambiente de demonstração.</strong> O administrador é registrado apenas neste navegador. Esta tela não substitui autenticação no servidor nem controla acesso aos dados corporativos. Não use credenciais reais.</div>
@@ -1397,7 +1397,8 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 "use strict";
 const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
 /* jrs-salvar-senha-login-v2: persistência local de sessão, sem salvar senha legível. */
-const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30;
+/* jrs-browser-password-manager-v3: o JRS não armazena a senha; oferece salvamento pelo navegador. */
+const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30,LOGIN_V3_KEY="jrs_admin_reauth_v3";
 const MODULES=["dashboard","equipment","vehicles","quotes","bookings","operations","hr","clients","finance","intelligence","settings","accesses"];
 const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","RH","Administrador"];
 const ROLE_DEFAULTS={
@@ -1466,17 +1467,18 @@ function showError(s){err.textContent=s||""}
 function showLogin(){
 pendingChange=null;firstSetup=!getRoot();showError("");
 const create=firstSetup;
-title(create?"PRIMEIRO ACESSO · ADMINISTRADOR":"ACESSO À PLATAFORMA",create?"Crie sua conta administradora.":"Acesse sua conta.",create?"Configure o primeiro administrador deste navegador.":"Use o e-mail e a senha cadastrados nesta demonstração.",create?"CRIAR ADMINISTRADOR →":"ENTRAR NO PAINEL →");
+title(create?"PRIMEIRO ACESSO · ADMINISTRADOR":"ACESSO À SUA CONTA JRS",create?"Crie sua conta administradora.":"Bem-vindo de volta.",create?"Configure o primeiro administrador deste navegador.":"Entre com o mesmo e-mail e senha de administrador já cadastrados. Não precisa criar outra conta.",create?"CRIAR ADMINISTRADOR →":"ENTRAR NO PAINEL →");
 document.getElementById("jrs-auth-name-box").style.display=create?"block":"none";
 document.getElementById("jrs-auth-confirm-box").style.display=create?"block":"none";
 document.getElementById("jrs-auth-name").required=create;
 confirmInput.required=create;
 emailInput.readOnly=false;
-emailInput.value=localStorage.getItem(LAST_EMAIL_KEY)||"";
-rememberInput.checked=false;
+emailInput.value=localStorage.getItem(LAST_EMAIL_KEY)||(getRoot()?.email||"");
+rememberInput.checked=!create;
 pwdInput.value="";confirmInput.value="";pwdInput.type="password";document.getElementById("jrs-auth-toggle").textContent="Mostrar";
 pwdInput.autocomplete=create?"new-password":"current-password";
-document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Se marcar Salvar senha, o aplicativo entrará automaticamente neste dispositivo por até 30 dias. Ao clicar em Sair, será solicitado login novamente.";
+document.getElementById("jrs-auth-hint").textContent=create?"Crie uma senha com pelo menos 10 caracteres, incluindo letras e números.":"Marque Salvar meu acesso para manter a sessão. O navegador pode preencher a senha salva ao selecionar ou digitar o e-mail. Se clicar em Sair, pediremos login novamente.";
+document.getElementById("jrs-auth-password-manager-hint").style.display=create?"none":"block";
 form.style.display="block";
 }
 function showChange(u){
@@ -1489,6 +1491,7 @@ confirmInput.required=true;
 emailInput.value=u.email;emailInput.readOnly=true;pwdInput.value="";confirmInput.value="";
 pwdInput.autocomplete="new-password";
 document.getElementById("jrs-auth-hint").textContent="Esta troca é obrigatória ao primeiro acesso do funcionário.";
+document.getElementById("jrs-auth-password-manager-hint").style.display="none";
 }
 function sessionValue(u){return u.id+"|"+u.email+"|"+u.hash}
 function rememberedUser(){
@@ -1525,6 +1528,12 @@ document.getElementById("jrs-auth-usertext").textContent=(u.name||"Usuário")+" 
 document.getElementById("jrs-logout-btn").addEventListener("click",lock);
 if(typeof go==="function")go("dashboard");
 }
+async function offerBrowserPasswordSave(email,password,name){
+ // Only with explicit "Salvar meu acesso". The browser owns the vault and permission UI.
+ if(!email||!password||!navigator.credentials||typeof navigator.credentials.store!=="function"||typeof PasswordCredential!=="function")return;
+ try{await navigator.credentials.store(new PasswordCredential({id:email,password,name:name||"JRS Guindastes"}))}
+ catch(_){/* Native browser password autofill remains available. */}
+}
 function lock(){
 logged=null;pendingChange=null;sessionStorage.removeItem(SESSION_KEY);
 localStorage.removeItem(REMEMBER_KEY);
@@ -1544,19 +1553,23 @@ if(name.length<2)throw Error("Informe o nome do administrador.");
 if(pass!==confirm)throw Error("As senhas não coincidem.");
 const sec=await credentials(pass),u={id:"ADMIN-ROOT",name,email,role:"Administrador",active:true,...sec,createdAt:new Date().toISOString()};
 if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error("Informe e-mail válido.");
-localStorage.setItem(ADMIN_KEY,JSON.stringify(u));unlock(u,rememberInput.checked?"remember":"session");
+localStorage.setItem(ADMIN_KEY,JSON.stringify(u));const saveAccess=rememberInput.checked;unlock(u,saveAccess?"remember":"session");
+if(saveAccess)void offerBrowserPasswordSave(email,pass,u.name);
 }else if(pendingChange){
 if(pass!==confirmInput.value)throw Error("As senhas não coincidem.");
 const sec=await credentials(pass),all=getUsers(),i=all.findIndex(u=>u.id===pendingChange.id);
 if(i<0||!all[i].active)throw Error("Funcionário bloqueado ou não encontrado.");
-all[i]={...all[i],...sec,mustChange:false};saveUsers(all);const user=all[i];pendingChange=null;unlock(user,rememberInput.checked?"remember":"session");
+all[i]={...all[i],...sec,mustChange:false};saveUsers(all);const user=all[i];pendingChange=null;const saveAccess=rememberInput.checked;unlock(user,saveAccess?"remember":"session");
+if(saveAccess)void offerBrowserPasswordSave(user.email,pass,user.name);
 }else{
 const u=getAll().find(x=>x.email===email&&x.active!==false);
 if(!u)throw Error("E-mail ou senha incorretos.");
 const hash=await hashPassword(pass,u.salt,u.iterations||210000);
 if(hash!==u.hash)throw Error("E-mail ou senha incorretos.");
 if(u.mustChange){showChange(u);return;}
-unlock(u,rememberInput.checked?"remember":"session");
+const saveAccess=rememberInput.checked;unlock(u,saveAccess?"remember":"session");
+localStorage.setItem(LAST_EMAIL_KEY,u.email);
+if(saveAccess)void offerBrowserPasswordSave(email,pass,u.name);
 }
 form.reset();
 }catch(ex){showError(ex.message||"Não foi possível entrar.")}
@@ -1565,7 +1578,19 @@ finally{btn.disabled=false;busy=false}
 form.addEventListener("submit",submit);
 document.getElementById("jrs-auth-toggle").addEventListener("click",function(){const shown=pwdInput.type==="password";pwdInput.type=shown?"text":"password";this.textContent=shown?"Ocultar":"Mostrar";this.setAttribute("aria-label",shown?"Ocultar senha":"Mostrar senha")});
 window.addEventListener("storage",e=>{if([ADMIN_KEY,USERS_KEY].includes(e.key)&&logged){const u=getLive();if(!u||u.hash!==logged.hash)lock()}});
-const session=sessionStorage.getItem(SESSION_KEY);
+// A single reauthentication for an existing ADMIN account when this UX is first installed.
+ // Preserve the registered admin and all app data; only clear old remembered sign-in.
+ if(!localStorage.getItem(LOGIN_V3_KEY)){
+   localStorage.setItem(LOGIN_V3_KEY,"1");
+   const previousSession=sessionStorage.getItem(SESSION_KEY)||"";
+   let previousRemember=null;
+   try{previousRemember=JSON.parse(localStorage.getItem(REMEMBER_KEY)||"null")}catch(_){}
+   if(getRoot()&&(previousSession.startsWith("ADMIN-ROOT|")||previousRemember?.id==="ADMIN-ROOT")){
+     sessionStorage.removeItem(SESSION_KEY);
+     localStorage.removeItem(REMEMBER_KEY);
+   }
+ }
+ const session=sessionStorage.getItem(SESSION_KEY);
 const current=getAll().find(u=>u.active!==false&&!u.mustChange&&sessionValue(u)===session);
 const remembered=rememberedUser();
 if(current){
