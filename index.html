@@ -888,28 +888,28 @@ function effectiveClauses(p){
  const existing=Array.isArray(p.clauses)?p.clauses:[];
  return JRS_CONTRACT_CLAUSES.map(base=>{
  const saved=existing.find(x=>Number(x.number)===base.number);
- return {number:base.number,title:base.title,text:saved&&typeof saved.text==="string"?saved.text:base.text,enabled:saved?Boolean(saved.enabled):base.number!==19};
+ return {number:base.number,title:saved?.title||base.title,text:saved&&typeof saved.text==="string"?saved.text:'',enabled:saved?Boolean(saved.enabled):false};
  });
 }
 function contractEditor(p){
  const clauses=effectiveClauses(p);
  return proposalSection('06 · Cláusulas e condições do contrato')
-  +'<div class="span2 contract-help"><b>19 cláusulas importadas do modelo JRS</b><p>Cláusulas 1 a 18 selecionadas inicialmente. A cláusula 19 contém condições específicas do exemplo (R$ 350/h, mínimo 10h/dia e 200h/mês, boleto dia 25) e começa desmarcada. Revise especialmente pagamento via Pix (1.1), cobranças adicionais, seguro, mensalidade e validade de 7 dias antes de enviar.</p><div class="actions"><button type="button" class="btn tiny" onclick="contractSelectAll(true)">Marcar 1–18</button><button type="button" class="btn tiny" onclick="contractSelectAll(false)">Desmarcar todas</button></div></div>'
+  +'<div class="span2 contract-help"><b>Cláusulas contratuais personalizáveis</b><p>Propostas novas começam com cláusulas desmarcadas e sem redação padrão. Escreva os termos da empresa locadora e revise juridicamente antes de enviar. Propostas antigas podem conter redação específica da empresa anterior; revise ao reutilizar.</p><div class="actions"><button type="button" class="btn tiny" onclick="contractSelectAll(false)">Desmarcar todas</button></div></div>'
   +'<div class="span2">'+proposalInput('Declaração de aceite / assinatura','contractIntro','textarea',false)+'</div>'
-  +clauses.map(cl=>'<div class="span2 contract-clause"><div class="contract-clause-top"><label class="contract-label"><input type="checkbox" id="contract-enable-'+cl.number+'" '+(cl.enabled?'checked':'')+'><span><b>'+cl.number+'. '+esc(cl.title)+'</b>'+(cl.number===19?'<small class="contract-special">Condições específicas do orçamento de origem — revisar valores</small>':'')+'</span></label><button type="button" class="btn tiny" onclick="contractRestore('+cl.number+')">Restaurar texto</button></div><details class="contract-details" '+(cl.number===19?'open':'')+'><summary>Revisar ou editar redação</summary><textarea id="contract-text-'+cl.number+'" rows="'+(cl.text.length>750?8:cl.text.length>420?6:4)+'">'+esc(cl.text)+'</textarea></details></div>').join('');
+  +clauses.map(cl=>'<div class="span2 contract-clause"><div class="contract-clause-top"><label class="contract-label"><input type="checkbox" id="contract-enable-'+cl.number+'" '+(cl.enabled?'checked':'')+'><span><b>'+cl.number+'. '+esc(cl.title)+'</b>'+(cl.number===19?'<small class="contract-special">Condições específicas do orçamento de origem — revisar valores</small>':'')+'</span></label><button type="button" class="btn tiny" onclick="contractRestore('+cl.number+')">Limpar texto</button></div><details class="contract-details" '+(cl.number===19?'open':'')+'><summary>Revisar ou editar redação</summary><textarea id="contract-text-'+cl.number+'" rows="'+(cl.text.length>750?8:cl.text.length>420?6:4)+'">'+esc(cl.text)+'</textarea></details></div>').join('');
 }
 function contractSelectAll(enabled){
- JRS_CONTRACT_CLAUSES.forEach(c=>{const box=document.getElementById('contract-enable-'+c.number);if(box)box.checked=enabled&&c.number!==19});
+ JRS_CONTRACT_CLAUSES.forEach(c=>{const box=document.getElementById('contract-enable-'+c.number);if(box)box.checked=enabled&&c.number!==19&&Boolean(document.getElementById('contract-text-'+c.number)?.value.trim())});
 }
 function contractRestore(number){
  const clause=JRS_CONTRACT_CLAUSES.find(c=>c.number===number),target=document.getElementById('contract-text-'+number);
- if(clause&&target&&confirm('Restaurar a redação original da cláusula '+number+'?'))target.value=clause.text;
+ if(clause&&target&&confirm('Limpar a redação da cláusula '+number+'?')){target.value='';const box=document.getElementById('contract-enable-'+number);if(box)box.checked=false;}
 }
 function readContractEditor(){
  return JRS_CONTRACT_CLAUSES.map(c=>({number:c.number,title:c.title,enabled:!!document.getElementById('contract-enable-'+c.number)?.checked,text:document.getElementById('contract-text-'+c.number)?.value.trim()||''}));
 }
 function proposalContractPrint(p){
- const sections=effectiveClauses(p).filter(c=>c.enabled);
+ const sections=effectiveClauses(p).filter(c=>c.enabled&&String(c.text||'').trim());
  if(!sections.length)return '';
  const intro=typeof p.contractIntro==="string"?p.contractIntro:JRS_CONTRACT_INTRO;
  return '<div class="contract-print">'
@@ -1020,14 +1020,14 @@ function printProposal(id){
  const p=db.proposals.find(x=>x.id===id);if(!p)return alert('Proposta não encontrada.');
  const w=window.open('','_blank');
  if(!w)return alert('O navegador bloqueou a abertura da proposta. Habilite janelas pop-up para este site.');
- const logo=window.JRS_LOGO_NORMAL_PNG||document.querySelector('.jrs-auth-brand-card .jrs-official-logo')?.src||'';
- const logoHtml=logo.startsWith('data:image/')?'<img src="'+logo+'" alt="JRS GUINDASTES" style="width:188px;max-height:82px;object-fit:contain">':'<strong>JRS GUINDASTES</strong>';
+ const logo=window.PlatformBrand.logoData();const issuerName=esc(window.PlatformBrand.company());
+ const logoHtml=logo.startsWith('data:image/')?'<img src="'+logo+'" alt="Logotipo do sistema" style="width:188px;max-height:82px;object-fit:contain">':'<strong>'+issuerName+'</strong>';
  const val=k=>proposalPrintText(p[k]);
  const cell=(label,value)=>'<div class="pc-cell"><span>'+label+'</span><div class="pc-value">'+(value||'—')+'</div></div>';
  const section=(title,body)=>'<section class="pc-section"><div class="pc-section-title">'+title+'</div><div class="pc-grid">'+body+'</div></section>';
- const doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+val('number')+' — JRS GUINDASTES</title><style>'
+ const doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+val('number')+' — '+issuerName+'</title><style>'
  +'@import url(https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap);@page{size:A4;margin:13mm}*{box-sizing:border-box}body{font:11px/1.52 Manrope,Arial,sans-serif;color:#1b1b1b;margin:0;background:white}.print-tools{padding:12px 20px;background:#181b20;color:white;display:flex;align-items:center;justify-content:space-between;font-size:12px}.print-tools button{background:#ffcd00;border:0;border-radius:6px;font-weight:700;padding:9px 16px;cursor:pointer}.paper{max-width:850px;margin:auto;padding:22px 30px;background:white}.pc-header{display:flex;align-items:center;justify-content:space-between;border-bottom:5px solid #ffcc00;padding-bottom:12px}.pc-brand-sub{font-weight:700;letter-spacing:1px;font-size:11px;color:#414141;text-align:right}.pc-title{margin:19px 0 7px;font-weight:900;font-size:23px;letter-spacing:-.7px}.pc-meta{display:flex;gap:22px;color:#666;font-size:10px;margin-bottom:19px}.pc-section{border:1px solid #dedede;margin:11px 0;break-inside:avoid;page-break-inside:avoid}.pc-section-title{background:#1b1b1b;color:#ffcd00;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.7px;padding:8px 12px}.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 17px;padding:11px 12px}.pc-cell{min-width:0}.pc-cell>span{display:block;color:#737373;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px}.pc-value{white-space:pre-wrap;font-size:11px;margin-top:2px;overflow-wrap:anywhere;font-weight:600}.pc-span{grid-column:1/-1}.pc-highlight{background:#fff4c2;padding:12px;border-left:4px solid #ffcc00}.pc-highlight .pc-value{font-size:19px}.pc-footer{margin-top:22px;border-top:2px solid #ffcd00;padding-top:10px;display:flex;justify-content:space-between;gap:15px;color:#4b4b4b;font-size:10px}.pc-ack{margin-top:42px;display:flex;justify-content:space-between;gap:30px;break-inside:avoid}.pc-sign{border-top:1px solid #777;padding:6px;flex:1;text-align:center;font-size:10px;color:#777}.contract-print{margin-top:28px;page-break-before:auto}.contract-print h2{font-size:16px;letter-spacing:.6px;border-bottom:3px solid #ffcd00;padding-bottom:10px}.contract-print-intro{font-size:11px;line-height:1.5;background:#fff8d9;border-left:4px solid #ffcd00;padding:11px 12px}.contract-print-item{margin:16px 0 20px;break-inside:avoid;page-break-inside:avoid}.contract-print-item h3{font-size:12px;margin:0 0 7px}.contract-print-item>div{white-space:pre-line;font-size:10px;line-height:1.55;text-align:justify}.pc-ack{break-before:auto}@media print{.print-tools{display:none}.paper{padding:0;max-width:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
- +'</style></head><body><div class="print-tools"><span>JRS GUINDASTES · Revisão da proposta comercial</span><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="paper"><header class="pc-header">'+logoHtml+'<div class="pc-brand-sub">JRS GUINDASTES<br>LOCAÇÃO E MOVIMENTAÇÃO DE CARGAS</div></header>'
+ +'</style></head><body><div class="print-tools"><span>Proposta comercial · Conferência antes do envio</span><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="paper"><header class="pc-header">'+logoHtml+'<div class="pc-brand-sub">'+issuerName+'<br>LOCAÇÃO DE EQUIPAMENTOS</div></header>'
  +'<h1 class="pc-title">PROPOSTA COMERCIAL DE LOCAÇÃO</h1>'
  +'<div class="pc-meta"><span><b>Nº</b> '+val('number')+'</span><span><b>Emissão:</b> '+esc(fmt(p.issueDate))+'</span><span><b>Validade:</b> '+(p.validUntil?esc(fmt(p.validUntil)):'A combinar')+'</span></div>'
  +section('01 · Dados do locatário',
@@ -1042,8 +1042,8 @@ function printProposal(id){
  +(p.commercialTerms?section('06 · Termos, exclusões e responsabilidades','<div class="pc-span">'+cell('Condições acordadas',val('commercialTerms'))+'</div>'):'')
  +(p.observations?section('07 · Observações','<div class="pc-span">'+cell('Observações adicionais',val('observations'))+'</div>'):'')
  +proposalContractPrint(p)
- +'<div class="pc-ack"><div class="pc-sign">JRS GUINDASTES<br>Responsável comercial: '+val('issuer')+'</div><div class="pc-sign">LOCATÁRIO<br>Aceite / assinatura</div></div>'
- +'<div class="pc-footer"><span>JRS GUINDASTES · Documento comercial</span><span>Proposta '+val('number')+' · Condições contratuais</span></div></main></body></html>';
+ +'<div class="pc-ack"><div class="pc-sign">'+issuerName+'<br>Responsável comercial: '+val('issuer')+'</div><div class="pc-sign">LOCATÁRIO<br>Aceite / assinatura</div></div>'
+ +'<div class="pc-footer"><span>'+issuerName+' · Documento comercial</span><span>Proposta '+val('number')+' · Condições contratuais</span></div></main></body></html>';
  w.document.open();w.document.write(doc);w.document.close();w.focus();
 }
 
