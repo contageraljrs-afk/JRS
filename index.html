@@ -377,6 +377,9 @@ h1,h2,h3,h4,.dashboard-head h1,.dash-hero h2{font-weight:800;letter-spacing:-.75
 <link rel="stylesheet" href="./vistorias-manutencoes.css?v=1">
 <script src="./jrs-servicos-fotos.js?v=1"></script>
 <script src="./vistorias-manutencoes.js?v=1"></script>
+<link rel="stylesheet" href="./jrs-rh-jornal.css?v=1">
+<script src="./jrs-rh-ponto.js?v=1"></script>
+<script src="./jrs-jornal.js?v=1"></script>
 <style id="jrs-srv-shortcuts">.srv-shortcuts{display:flex;gap:9px;flex-wrap:wrap;margin:-3px 0 17px}.srv-shortcuts .btn{font-size:12px;background:#fff;border-color:#dce5da;color:#32513a}.srv-shortcuts .btn:hover{background:#f5f9f0}@media(max-width:580px){.srv-shortcuts .btn{flex:1}}</style>
 </head>
 <body>
@@ -411,7 +414,7 @@ db.proposals=Array.isArray(db.proposals)?db.proposals:[];
 db.vehicles=Array.isArray(db.vehicles)?db.vehicles:[];
 db.creditReviews=Array.isArray(db.creditReviews)?db.creditReviews:[];
 let view='dashboard',filterText='',filterCategory='',vehicleTypeFilter='';
-const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['inspections','▤','Vistorias e OS'],['maintenance','⚒','Manutenções'],['staff','♧','Funcionários'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
+const sections=[['PRINCIPAL',[['dashboard','◫','Visão geral'],['jornal','▤','Jornal JRS'],['fleetboard','▦','Programação semanal'],['equipment','⚙','Equipamentos'],['quotes','▤','Orçamentos'],['proposals','▧','Propostas comerciais'],['bookings','▦','Agenda de locações']]],['GESTÃO',[['operations','⌁','Central de operações'],['inspections','▤','Vistorias e OS'],['maintenance','⚒','Manutenções'],['staff','♧','Funcionários'],['hr','♡','Recursos Humanos'],['vehicles','🚚','Veículos e frota'],['clients','♙','Clientes'],['credit','◈','Consultas · Assertiva'],['finance','▥','Financeiro']]],['INTELIGÊNCIA',[['intelligence','◈','JRS Intelligence'],['accesses','♧','Acessos e equipe'],['settings','⚙','Configurações']]]];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
@@ -419,10 +422,15 @@ const uid=p=>p+'-'+Date.now().toString(36)+'-'+(crypto.randomUUID?crypto.randomU
 db.staff=Array.isArray(db.staff)?db.staff:[];
 db.inspections=Array.isArray(db.inspections)?db.inspections:[];
 db.maintenances=Array.isArray(db.maintenances)?db.maintenances:[];
+db.rhPunches=Array.isArray(db.rhPunches)?db.rhPunches:[];
+db.rhClosings=Array.isArray(db.rhClosings)?db.rhClosings:[];
+db.jrsJournal=Array.isArray(db.jrsJournal)?db.jrsJournal:[];
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
 const status=(s)=>{let z=/disponível|aprov|conclu|confirmad/i.test(s)?'available':/reserva|análise|novo|agend|pendente/i.test(s)?'reserved':/opera|proposta|negocia|andamento/i.test(s)?'working':'inactive';return '<span class="status '+z+'">'+esc(s)+'</span>'};
-const canView=m=>!window.JRSAccess||window.JRSAccess.canView(m==='proposals'?'quotes':m==='credit'?'clients':['fleetboard','staff','inspections','maintenance'].includes(m)?'operations':m);
-const canEdit=m=>!window.JRSAccess||window.JRSAccess.canEdit(m==='proposals'?'quotes':m==='credit'?'clients':['fleetboard','staff','inspections','maintenance'].includes(m)?'operations':m);
+/* jrs-rh-access-v1: jornal visível a usuários logados; edições reservadas ao RH. */
+const accessModule=m=>m==='proposals'?'quotes':m==='credit'?'clients':m==='jornal'?'dashboard':['fleetboard','inspections','maintenance'].includes(m)?'operations':m;
+const canView=m=>!window.JRSAccess||(m==='staff'?window.JRSAccess.canView('operations')||window.JRSAccess.canView('hr'):window.JRSAccess.canView(accessModule(m)));
+const canEdit=m=>!window.JRSAccess||(m==='staff'?window.JRSAccess.canEdit('operations')||window.JRSAccess.canEdit('hr'):m==='jornal'?window.JRSAccess.canEdit('hr'):window.JRSAccess.canEdit(accessModule(m)));
 const requireEdit=m=>{if(canEdit(m))return true;alert('Seu perfil não permite alterar dados deste módulo.');return false};
 const header=(title,desc,button,action)=>'<div class="headline"><div><span class="eyebrow">JRS GUINDASTES · LOCAÇÕES</span><h1>'+title+'</h1><p class="subtitle">'+desc+'</p></div>'+(button&&((view==='dashboard')?canEdit('quotes'):canEdit(view))?'<button class="btn primary" onclick="'+action+'">＋ '+button+'</button>':'')+'</div>';
 const table=(cols,rows)=>'<div class="card tablewrap"><table class="table"><thead><tr>'+cols.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+ (rows.length?rows.join(''):'<tr><td colspan="'+cols.length+'" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div>';
@@ -440,6 +448,8 @@ function navIcon(key){
  inspections:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5M16 16l2 2 3-4"/>',
  maintenance:'<path d="M14 4a5 5 0 0 0-1 5l2 2a5 5 0 0 0 5-1l-3-3 3-3a5 5 0 0 0-6 0Z"/><path d="M13 11 4 20l-1 2 3-1 9-8"/>',
  staff:'<circle cx="8" cy="8" r="3"/><path d="M2 20v-2a6 6 0 0 1 12 0v2M16 9a3 3 0 0 1 0 6M16 17a4 4 0 0 1 4 4"/>',
+ jornal:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4v4H7zM14 8h4M14 11h4M7 15h11"/>',
+ hr:'<path d="M12 21s-8-4.5-8-11a4.5 4.5 0 0 1 8-3 4.5 4.5 0 0 1 8 3c0 6.5-8 11-8 11Z"/><path d="M8 12h8M12 8v8"/>',
  clients:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 8a3 3 0 0 1 0 6M17 16a4 4 0 0 1 4 4"/>',
  credit:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5M8 16h5M16 13l2 2 3-4"/>',
  finance:'<rect x="2" y="5" width="20" height="15" rx="2"/><path d="M2 10h20M7 15h4"/>',
@@ -479,7 +489,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&document.getElementById('dialog')?.classList.contains('open'))closeDialog();
 });
 function go(s){if(!canView(s))return;view=s;filterText='';filterCategory='';vehicleTypeFilter='';document.getElementById('sidebar').classList.remove('show');render()}
-function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),inspections:()=>window.JRSWork.inspections(),maintenance:()=>window.JRSWork.maintenance(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
+function render(){if(!canView(view))view='dashboard';renderNav();const t=sections.flatMap(s=>s[1]).find(i=>i[0]===view);const headerLabel=document.getElementById('top-current');if(headerLabel)headerLabel.textContent=t?t[2]:'Visão geral';const handlers={dashboard:dash,jornal:()=>window.JRSJournal.page(),hr:()=>window.JRSRH.render(),fleetboard:()=>window.JRSBoard.render(false),staff:()=>window.JRSStaff.render(),inspections:()=>window.JRSWork.inspections(),maintenance:()=>window.JRSWork.maintenance(),equipment:equipment,quotes:quotes,bookings:bookings,operations:operations,clients:clients,credit:()=>window.JRSCreditUI.render(),finance:finance,intelligence:intelligence,settings:settings,accesses:accesses,proposals:proposals,vehicles:vehicles};document.getElementById('page').innerHTML=(handlers[view]||dash)();if(view==='equipment')refreshEquipmentPhotos()}
 
 
 /* jrs-home-calendar-v1: agenda de reservas e operações em destaque na página inicial */
@@ -545,7 +555,7 @@ function dash(){
   ['vehicles','Veículos e frota','Consultar registros'],
   ['bookings','Agenda','Ver programações']
  ].filter(x=>canView(x[0]));
- return (canView('fleetboard')?window.JRSBoard.render(true):'')+homeAgenda()
+ return (canView('fleetboard')?window.JRSBoard.render(true):'')+(canView('jornal')?window.JRSJournal.home():'')+homeAgenda()
  +'<div class="dash-hero"><div class="dash-hero-copy"><span class="dash-kicker"><span class="hero-dot"></span> CENTRAL DE CONTROLE</span><h2>Gestão que acompanha<br><em>a força da sua operação.</em></h2><p>Acompanhe a frota, organize locações e transforme solicitações em resultados.</p><div class="actions">'+(canEdit('quotes')?'<button class="btn primary" onclick="openQuote()">＋ Criar orçamento</button>':'')+'<button class="btn hero-outline" onclick="go(\'proposals\')">Propostas comerciais <span>↗</span></button></div></div><div class="hero-art" aria-hidden="true"><span class="art-grid"></span><span class="art-circle"></span><span class="art-lift">JRS</span><span class="art-caption">OPERAÇÃO<br>EM MOVIMENTO</span><span class="art-line"></span><span class="art-cube"></span></div></div>'
  +'<div class="dash-stat-grid">'+metrics.map(m=>'<button type="button" class="dash-stat card" onclick="go(\''+m[3]+'\')" '+(!canView(m[3])?'disabled':'')+'><div class="stat-top"><span class="stat-index">'+m[4]+' / INDICADOR</span><span class="stat-arrow">↗</span></div><div class="stat-val">'+m[1]+'</div><div class="stat-label">'+m[0]+'</div><small>'+m[2]+'</small></button>').join('')+'</div>'
  +'<div class="dash-panels"><div class="card fleet-panel"><div class="card-head"><div><span class="mini-overline">INTELIGÊNCIA OPERACIONAL</span><h3>Composição da frota</h3><small>Equipamentos cadastrados por categoria</small></div><span class="panel-counter">'+db.equipment.length+' ativos no cadastro</span></div><div class="category-bars">'+datasets.map((d,i)=>'<div class="category-line"><span class="category-name">'+esc(d.name)+'</span><span class="category-track"><span class="category-fill" style="width:'+Math.round(d.n/biggest*100)+'%"></span></span><b>'+d.n+'</b></div>').join('')+'</div><div class="fleet-panel-footer"><span><span class="legend-dot"></span> Registros demonstrativos</span><button class="inline-action" onclick="go(\'equipment\')">Gerenciar equipamentos ↗</button></div></div>'
@@ -1207,8 +1217,8 @@ function openClient(id){
 function openFinance(){if(!requireEdit('finance'))return;openDialog('Novo lançamento financeiro','<form id="entryForm" class="form-grid">'+field('Descrição','description')+field('Tipo de lançamento','type','text',true,['Receita','Despesa'])+field('Valor (R$)','value','number')+field('Data','date','date')+'<div class="span2 actions"><button class="btn primary" type="submit">Registrar lançamento</button></div></form>');bindForm(f=>{db.finance.push({...f,id:uid('FN'),value:Number(f.value)});save();closeDialog();render()})}
 
 /* Gerenciamento de colaboradores - armazenamento local demonstrativo */
-const TEAM_MODULES=[['dashboard','Visão geral'],['equipment','Equipamentos'],['vehicles','Veículos e frota'],['quotes','Orçamentos'],['bookings','Agenda de locações'],['operations','Operações'],['staff','Funcionários'],['clients','Clientes'],['finance','Financeiro'],['intelligence','JRS Intelligence']];
-const TEAM_ROLES=['Básico','Operacional','Comercial','Gestor','Administrador'];
+const TEAM_MODULES=[['dashboard','Visão geral'],['equipment','Equipamentos'],['vehicles','Veículos e frota'],['quotes','Orçamentos'],['bookings','Agenda de locações'],['operations','Operações'],['hr','RH · Ponto e folha'],['clients','Clientes'],['finance','Financeiro'],['intelligence','JRS Intelligence']];
+const TEAM_ROLES=['Básico','Operacional','Comercial','Gestor','RH','Administrador'];
 function accesses(){
   if(!canView('accesses'))return '<div class="card">Acesso não autorizado.</div>';
   const access=window.JRSAccess,people=access.list(),admin=access.root();
@@ -1291,7 +1301,7 @@ function memberPassword(id){
 }
 
 function exportData(){const a=document.createElement('a'),b=new Blob([JSON.stringify({mode:'demonstracao',savedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'});a.href=URL.createObjectURL(b);a.download='jrs-smart-rental-demo.json';a.click();URL.revokeObjectURL(a.href)}
-function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];db.inspections=[];db.maintenances=[];save();render()}}
+function resetDemo(){if(!requireEdit('settings'))return;if(confirm('Reiniciar todos os dados locais de demonstração?')){db=JSON.parse(JSON.stringify(seed));db.creditReviews=[];db.staff=[];db.inspections=[];db.maintenances=[];db.rhPunches=[];db.rhClosings=[];db.jrsJournal=[];save();render()}}
 document.getElementById('date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});render();
 </script>
 
@@ -1388,12 +1398,13 @@ body.jrs-unlocked #jrs-auth{display:none!important}
 const ADMIN_KEY="jrs_demo_admin_v1",USERS_KEY="jrs_demo_employees_v1",SESSION_KEY="jrs_demo_admin_session_v1";
 /* jrs-salvar-senha-login-v2: persistência local de sessão, sem salvar senha legível. */
 const REMEMBER_KEY="jrs_demo_remember_login_v1",LAST_EMAIL_KEY="jrs_demo_remember_email_v1",REMEMBER_DAYS=30;
-const MODULES=["dashboard","equipment","vehicles","quotes","bookings","operations","clients","finance","intelligence","settings","accesses"];
-const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","Administrador"];
+const MODULES=["dashboard","equipment","vehicles","quotes","bookings","operations","hr","clients","finance","intelligence","settings","accesses"];
+const ROLE_NAMES=["Básico","Operacional","Comercial","Gestor","RH","Administrador"];
 const ROLE_DEFAULTS={
 "Básico":{view:["dashboard","equipment"],edit:[]},
 "Operacional":{view:["dashboard","equipment","bookings","operations"],edit:["bookings","operations"]},
 "Comercial":{view:["dashboard","equipment","quotes","bookings","clients"],edit:["quotes","clients"]},
+"RH":{view:["dashboard","hr"],edit:["hr"]},
 "Gestor":{view:["dashboard","equipment","quotes","bookings","operations","clients","finance","intelligence"],edit:["equipment","quotes","bookings","operations","clients","finance"]},
 "Administrador":{view:MODULES,edit:MODULES}
 };
